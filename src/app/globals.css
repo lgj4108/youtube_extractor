@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+/* 다크모드(해/달 토글 버튼)를 class 기반으로 수동 제어하기 위한 v4 전용 문법 */
+@custom-variant dark (&:is(.dark *));
