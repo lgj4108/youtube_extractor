@@ -1,0 +1,55 @@
+import { NextResponse } from 'next/server';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const { provider, apiKey, youtubeData = [] } = body;
+
+        let aiModel;
+        if (provider === 'gemini') {
+            const google = createGoogleGenerativeAI({ apiKey });
+            aiModel = google('models/gemini-1.5-pro-latest');
+        } else if (provider === 'groq') {
+            const groq = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey });
+            aiModel = groq('llama-3.3-70b-versatile');
+        } else {
+            const openai = createOpenAI({ apiKey });
+            aiModel = openai('gpt-4o-mini');
+        }
+
+        const compressedData = youtubeData.map((v: any) => ({ title: v.title, tags: v.tags }));
+
+        const prompt = `
+        너는 트렌드를 선도하는 글로벌 K-Pop/힙합 프로듀서야.
+        다음은 현재 유튜브에서 인기 있는 관련 영상들의 제목과 태그 데이터야:
+        ${JSON.stringify(compressedData)}
+
+        이 트렌드 데이터를 분석해서, 대중들이 열광할 만한 **'새로운 창작 곡(노래)'의 컨셉 3가지**를 기획해 줘. 
+        다큐멘터리나 리뷰 영상이 절대 아니야. 가사를 쓰기 위한 '음악/곡' 자체의 컨셉이야.
+
+        반드시 아래 JSON 형식으로 응답해.
+        {
+            "inferredTheme": "데이터를 관통하는 핵심 음악 트렌드 (예: 감성적인 이별 힙합)",
+            "plans": [
+                {
+                    "title": "곡 제목 (예: Midnight City)",
+                    "midjourneyPrompt": "이 곡의 앨범 커버나 뮤비 썸네일로 쓸 미드저니 프롬프트 (영어, --ar 16:9 필수)"
+                },
+                ... (총 3개)
+            ]
+        }
+        `;
+
+        const { text } = await generateText({ model: aiModel, prompt });
+        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsedData = JSON.parse(cleanText);
+
+        return NextResponse.json(parsedData);
+
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
