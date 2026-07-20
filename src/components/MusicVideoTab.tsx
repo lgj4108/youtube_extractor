@@ -82,28 +82,27 @@ export default function MusicVideoTab() {
         }
     };
 
-    // 가사 생성 (장르, 언어 세팅값 포함 전송)
-    // 가사 생성 로직 (기존 MusicVideoTab.tsx 파일 내 handleGenerateLyrics 함수 교체)
-    const handleGenerateLyrics = async (index: number, title: string) => {
+    // 가사 생성 로직 (musicStyle 인자 추가)
+    const handleGenerateLyrics = async (index: number, title: string, musicStyle: string) => {
         if (!apiKey) { setIsSettingsOpen(true); return; }
         setAiPlans(prev => prev.map((plan, i) => i === index ? { ...plan, isGeneratingLyrics: true } : plan));
 
         try {
             const response = await fetch('/api/music-generate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, apiKey, keyword: title, genre, mainLang, subLangs, youtubeData: videos }),
+                // 💡 musicStyle을 백엔드로 함께 전송하여 가사가 해당 무드에 더 어울리게 만듦
+                body: JSON.stringify({ provider: aiProvider, apiKey, keyword: title, musicStyle, genre, mainLang, subLangs, youtubeData: videos }),
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error);
 
-            // 💡 백엔드에서 넘겨준 JSON 파싱
             const generatedLyrics = data.lyrics || '결과를 받아오지 못했습니다.';
             const scenePrompts = data.scenePrompts || [];
 
             setAiPlans(prev => prev.map((plan, i) => i === index ? {
                 ...plan,
                 lyrics: generatedLyrics,
-                scenePrompts: scenePrompts, // 💡 배열 상태 저장
+                scenePrompts: scenePrompts,
                 isGeneratingLyrics: false
             } : plan));
         } catch (err: any) {

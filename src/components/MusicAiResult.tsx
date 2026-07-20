@@ -4,6 +4,7 @@ import { YouTubeVideo } from '@/types/youtube';
 
 export interface MusicAiPlan {
     title: string;
+    musicStyle: string; // 음악 스타일(Suno/Udio 태그)
     midjourneyPrompt: string;
     lyrics?: string;
     scenePrompts?: string[];
@@ -20,7 +21,7 @@ interface MusicAiResultProps {
     mainLang: string; setMainLang: (val: string) => void;
     subLangs: string[]; setSubLangs: (val: string[]) => void;
     onGeneratePlans: () => void;
-    onGenerateLyrics: (index: number, title: string) => void;
+    onGenerateLyrics: (index: number, title: string, musicStyle: string) => void;
 }
 
 export default function MusicAiResult({
@@ -29,23 +30,25 @@ export default function MusicAiResult({
                                           onGeneratePlans, onGenerateLyrics
                                       }: MusicAiResultProps) {
 
-    // 💡 선택된 가사를 하단 넓은 패널에 보여주기 위한 상태
+    // 선택된 가사를 하단 넓은 패널에 보여주기 위한 상태
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(null);
 
+    // 검색된 영상이 없으면 렌더링하지 않음
     if (videos.length === 0) return null;
 
     const handleSubLangChange = (lang: string) => {
         setSubLangs(subLangs.includes(lang) ? subLangs.filter(l => l !== lang) : [...subLangs, lang]);
     };
 
-    const handleGenerateClick = (index: number, title: string) => {
+    const handleGenerateClick = (index: number, title: string, musicStyle: string) => {
         setActiveDetailIndex(index);
-        onGenerateLyrics(index, title);
+        onGenerateLyrics(index, title, musicStyle);
     };
 
     return (
         <div className="flex flex-col gap-6 animate-fadeIn">
 
+            {/* 2단계: 기획안 추출 헤더 */}
             <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-200/50 dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
                     ✅ <span className="text-indigo-600 dark:text-indigo-400 text-base">'{searchedKeyword}'</span> 관련 유튜브 데이터 {videos.length}개 확보 완료
@@ -55,6 +58,7 @@ export default function MusicAiResult({
                 </button>
             </div>
 
+            {/* AI 자동 기획 테마 표시 */}
             {inferredTheme && (
                 <div className="bg-indigo-50 dark:bg-slate-900/60 p-4 rounded-lg border border-indigo-200 dark:border-slate-700 text-sm flex items-center gap-2">
                     <span className="font-bold text-indigo-700 dark:text-indigo-400">🎯 AI 곡 기획 테마:</span>
@@ -64,7 +68,7 @@ export default function MusicAiResult({
 
             {aiPlans.length > 0 && (
                 <>
-                    {/* 가사 설정 폼 */}
+                    {/* 3단계: 가사 설정 폼 */}
                     <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm mt-2">
                         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">🎶 3단계: 가사 프로덕션 세부 설정</h3>
                         <div className="flex flex-col md:flex-row gap-4">
@@ -96,36 +100,64 @@ export default function MusicAiResult({
                         </div>
                     </div>
 
-                    {/* 기획안 3개 렌더링 (카드는 깔끔하게 유지) */}
+                    {/* 기획안 3개 카드 렌더링 */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {aiPlans.map((plan, index) => (
                             <div key={index} className={`bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border flex flex-col h-full transition-all ${activeDetailIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900' : 'border-slate-200 dark:border-slate-700'}`}>
                                 <span className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 text-xs font-bold rounded-md mb-3 w-max">트랙 {index + 1}</span>
-                                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 leading-tight">{plan.title}</h3>
+                                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-3 leading-tight">{plan.title}</h3>
+
+                                {/* 카드 내 음악 스타일 태그 (복사 기능 포함) */}
+                                <div className="mb-3">
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <p className="text-[10px] font-bold text-indigo-500">🎸 음악 스타일 (Suno/Udio 태그)</p>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(plan.musicStyle);
+                                                alert(`트랙 ${index + 1}의 음악 스타일이 복사되었습니다.`);
+                                            }}
+                                            className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:hover:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded transition-colors font-bold"
+                                        >
+                                            스타일 복사
+                                        </button>
+                                    </div>
+                                    <p
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(plan.musicStyle);
+                                            alert(`트랙 ${index + 1}의 음악 스타일이 복사되었습니다.`);
+                                        }}
+                                        className="text-xs text-slate-600 dark:text-slate-400 bg-indigo-50/50 dark:bg-slate-800 p-2.5 rounded border border-indigo-100 dark:border-slate-700 font-mono break-words cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors"
+                                        title="클릭하여 복사"
+                                    >
+                                        {plan.musicStyle}
+                                    </p>
+                                </div>
 
                                 <div className="mb-4 flex-1">
                                     <p className="text-[10px] font-bold text-slate-500 mb-1">앨범 커버 / 썸네일 컨셉</p>
-                                    <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-2 rounded border border-slate-100 dark:border-slate-700 font-mono break-words">{plan.midjourneyPrompt}</p>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-2.5 rounded border border-slate-100 dark:border-slate-700 font-mono break-words">{plan.midjourneyPrompt}</p>
                                 </div>
 
-                                <button onClick={() => handleGenerateClick(index, plan.title)} disabled={plan.isGeneratingLyrics} className="w-full py-2.5 mt-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shadow-sm">
+                                <button onClick={() => handleGenerateClick(index, plan.title, plan.musicStyle)} disabled={plan.isGeneratingLyrics} className="w-full py-2.5 mt-auto bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shadow-sm">
                                     {plan.isGeneratingLyrics ? '🎶 프로덕션 가동 중...' : (plan.lyrics ? '👀 결과물 확인하기' : '🎶 이 컨셉으로 곡 쓰기')}
                                 </button>
                             </div>
                         ))}
                     </div>
 
-                    {/* 💡 하단 와이드 디스플레이 패널 (선택된 곡만 큼지막하게 보여줌) */}
+                    {/* 하단 와이드 디스플레이 패널 */}
                     {activeDetailIndex !== null && (
                         <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn relative">
                             {aiPlans[activeDetailIndex].isGeneratingLyrics ? (
                                 <div className="flex flex-col items-center justify-center py-20">
                                     <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-                                    <p className="text-sm font-bold text-slate-600 dark:text-slate-400 animate-pulse">3분 분량의 상업용 가사와 씬(Scene) 프롬프트를 창작 중입니다...</p>
+                                    <p className="text-sm font-bold text-slate-600 dark:text-slate-400 animate-pulse">상업용 가사와 씬(Scene) 프롬프트를 창작 중입니다...</p>
                                 </div>
                             ) : (
                                 aiPlans[activeDetailIndex].lyrics && (
-                                    <div className="flex flex-col md:flex-row gap-8">
+                                    <div className="flex flex-col lg:flex-row gap-8">
+
                                         {/* 좌측: 가사 영역 */}
                                         <div className="flex-[3]">
                                             <div className="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
@@ -139,38 +171,40 @@ export default function MusicAiResult({
                                             </div>
                                         </div>
 
-                                        {/* 우측: 씬별 프롬프트 영역 */}
-                                        <div className="flex-[2] flex flex-col gap-3">
-                                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-1">
-                                                <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎬 뮤비 씬(Scene) 프롬프트</h4>
+                                        {/* 우측: 음악 스타일 & 씬 프롬프트 영역 */}
+                                        <div className="flex-[2] flex flex-col gap-5">
 
-                                                <button
-                                                    onClick={() => {
-                                                        const allPrompts = aiPlans[activeDetailIndex].scenePrompts?.join('\n\n') || '';
-                                                        navigator.clipboard.writeText(allPrompts);
-                                                        alert('전체 씬 프롬프트가 복사되었습니다.');
-                                                    }}
-                                                    className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors"
-                                                >
-                                                    일괄 복사
-                                                </button>
+                                            {/* 음악 스타일 패널 */}
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                                                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎸 AI 음악 스타일 (Suno/Udio용)</h4>
+                                                    <button onClick={() => {navigator.clipboard.writeText(aiPlans[activeDetailIndex].musicStyle); alert('음악 스타일 태그가 복사되었습니다.');}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">
+                                                        복사
+                                                    </button>
+                                                </div>
+                                                <div className="p-3 bg-indigo-50/60 dark:bg-slate-800 rounded-lg border border-indigo-100 dark:border-slate-700 text-xs font-mono text-indigo-900 dark:text-indigo-300 select-all cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500 transition-colors" onClick={() => {navigator.clipboard.writeText(aiPlans[activeDetailIndex].musicStyle); alert('복사되었습니다.');}} title="클릭하여 복사">
+                                                    {aiPlans[activeDetailIndex].musicStyle}
+                                                </div>
                                             </div>
 
-                                            {aiPlans[activeDetailIndex].scenePrompts?.map((p, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(p);
-                                                        alert(`Scene ${idx + 1} 프롬프트가 복사되었습니다.`);
-                                                    }}
-                                                    className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 break-words select-all hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer"
-                                                    title="클릭하여 복사"
-                                                >
-                                                    {/* 💡 개별 복사 onClick 이벤트용 주석을 안전하게 div 안으로 이동했습니다 */}
-                                                    <span className="inline-block bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded text-[10px] mb-2">Scene {idx + 1}</span><br/>
-                                                    {p}
+                                            {/* 씬 프롬프트 패널 */}
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                                                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎬 뮤비 씬(Scene) 프롬프트</h4>
+                                                    <button onClick={() => {const all = aiPlans[activeDetailIndex].scenePrompts?.join('\n\n') || ''; navigator.clipboard.writeText(all); alert('전체 씬 프롬프트가 복사되었습니다.');}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">
+                                                        일괄 복사
+                                                    </button>
                                                 </div>
-                                            ))}
+                                                <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
+                                                    {aiPlans[activeDetailIndex].scenePrompts?.map((p, idx) => (
+                                                        <div key={idx} onClick={() => {navigator.clipboard.writeText(p); alert(`Scene ${idx + 1} 복사됨`);}} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 break-words select-all hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer" title="클릭 복사">
+                                                            <span className="inline-block bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded text-[10px] mb-1">Scene {idx + 1}</span><br/>
+                                                            {p}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                         </div>
                                     </div>
                                 )
