@@ -1,21 +1,23 @@
 'use client';
 import { useState, FormEvent, useEffect } from 'react';
 import { YouTubeVideo } from '@/types/youtube';
+// 💡 경로 에러 수정: 같은 폴더(components)에 있는 파일들을 정상적으로 불러옵니다.
 import MusicSearchForm from './MusicSearchForm';
 import MusicAiResult, { MusicAiPlan } from './MusicAiResult';
 import AiSettingsModal from './planner/AiSettingsModal';
 
 export default function MusicVideoTab() {
-    // 검색 관련 상태
+    // 1. 검색 관련 상태
     const [keyword, setKeyword] = useState<string>('');
-    const [searchedKeyword, setSearchedKeyword] = useState<string>(''); // 💡 검색된 키워드 피드백용
+    const [searchedKeyword, setSearchedKeyword] = useState<string>('');
     const [region, setRegion] = useState<string>('KR');
 
-    // 가사 설정 관련 상태
+    // 2. 가사 및 프로덕션 설정 상태
     const [genre, setGenre] = useState<string>('pop');
     const [mainLang, setMainLang] = useState<string>('KR');
     const [subLangs, setSubLangs] = useState<string[]>([]);
 
+    // 3. 데이터 및 로딩 상태
     const [videos, setVideos] = useState<YouTubeVideo[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
@@ -24,6 +26,7 @@ export default function MusicVideoTab() {
     const [isGeneratingPlans, setIsGeneratingPlans] = useState<boolean>(false);
     const [inferredTheme, setInferredTheme] = useState<string>('');
 
+    // 4. AI 설정 상태
     const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
     const [aiProvider, setAiProvider] = useState<string>('gemini');
     const [apiKey, setApiKey] = useState<string>('');
@@ -35,23 +38,30 @@ export default function MusicVideoTab() {
         if (savedKey) setApiKey(savedKey);
     }, []);
 
-    // 트렌드 검색
+    // 🚀 [1단계] 유튜브 트렌드 검색 (음악 카테고리 고정)
     const handleFetchYoutube = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!keyword.trim()) return;
-        setLoading(true); setError(''); setAiPlans([]); setInferredTheme(''); setVideos([]);
 
-        // 💡 폼에 입력된 값을 실제로 '검색 완료된 키워드'로 저장
+        setLoading(true);
+        setError('');
+        setAiPlans([]);
+        setInferredTheme('');
+        setVideos([]);
+
         setSearchedKeyword(keyword);
 
         try {
             const response = await fetch('/api/planner', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ keyword, period: 'month', duration: 'any', region }),
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyword, period: 'month', duration: 'any', region, categoryId: '10' }),
             });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || '오류 발생');
+
+            if (!response.ok) throw new Error(data.error || '검색 중 오류가 발생했습니다.');
             setVideos(data.rawData || []);
+
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -59,42 +69,47 @@ export default function MusicVideoTab() {
         }
     };
 
-    // AI 기획안 생성 (MusicVideoTab.tsx 내부)
+    // 🚀 [2단계] AI 곡 기획안 3개 추출
     const handleGenerateAiPlans = async () => {
         if (!apiKey) { setIsSettingsOpen(true); return; }
-        setIsGeneratingPlans(true); setAiPlans([]);
+        setIsGeneratingPlans(true);
+        setAiPlans([]);
 
         try {
-            // 💡 기존 '/api/generate' 에서 '/api/music-plan' 으로 변경!!
             const response = await fetch('/api/music-plan', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, apiKey, youtubeData: videos }),
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider: aiProvider, apiKey, youtubeData: videos, genre }),
             });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+
+            if (!response.ok) throw new Error(data.error || '기획안 생성 실패');
 
             setAiPlans(data.plans || []);
             setInferredTheme(data.inferredTheme || '');
+
         } catch (err: any) {
-            alert(err.message);
+            alert(`기획안 오류: ${err.message}`);
         } finally {
             setIsGeneratingPlans(false);
         }
     };
 
-    // 가사 생성 로직 (musicStyle 인자 추가)
+    // 🚀 [3단계] 선택한 컨셉으로 가사 및 씬 프롬프트 생성
     const handleGenerateLyrics = async (index: number, title: string, musicStyle: string) => {
         if (!apiKey) { setIsSettingsOpen(true); return; }
+
         setAiPlans(prev => prev.map((plan, i) => i === index ? { ...plan, isGeneratingLyrics: true } : plan));
 
         try {
             const response = await fetch('/api/music-generate', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                // 💡 musicStyle을 백엔드로 함께 전송하여 가사가 해당 무드에 더 어울리게 만듦
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ provider: aiProvider, apiKey, keyword: title, musicStyle, genre, mainLang, subLangs, youtubeData: videos }),
             });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+
+            if (!response.ok) throw new Error(data.error || '가사 생성 실패');
 
             const generatedLyrics = data.lyrics || '결과를 받아오지 못했습니다.';
             const scenePrompts = data.scenePrompts || [];
@@ -105,8 +120,9 @@ export default function MusicVideoTab() {
                 scenePrompts: scenePrompts,
                 isGeneratingLyrics: false
             } : plan));
+
         } catch (err: any) {
-            alert(`가사 생성 실패: ${err.message}`);
+            alert(`가사 생성 오류: ${err.message}`);
             setAiPlans(prev => prev.map((plan, i) => i === index ? { ...plan, isGeneratingLyrics: false } : plan));
         }
     };
@@ -116,19 +132,17 @@ export default function MusicVideoTab() {
             <AiSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} apiKey={apiKey} setApiKey={setApiKey} />
 
             <div className="absolute -top-14 right-2 sm:right-6">
-                <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-slate-200/50 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300">⚙️</button>
+                <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-slate-200/50 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-300 dark:hover:bg-slate-700">⚙️</button>
             </div>
 
-            {/* 1단계: 깔끔해진 검색 폼 */}
             <MusicSearchForm
                 keyword={keyword} setKeyword={setKeyword}
                 region={region} setRegion={setRegion}
                 loading={loading} onSubmit={handleFetchYoutube}
             />
 
-            {error && <div className="p-5 mb-8 bg-red-50 text-red-600 rounded-xl font-medium text-center">⚠️ {error}</div>}
+            {error && <div className="p-5 mb-8 bg-red-50 text-red-600 rounded-xl font-medium text-center shadow-sm border border-red-100">⚠️ {error}</div>}
 
-            {/* 2~3단계: 검색 결과 피드백 + 기획안 + 가사 세팅 및 출력 */}
             <MusicAiResult
                 searchedKeyword={searchedKeyword}
                 videos={videos}
@@ -136,7 +150,6 @@ export default function MusicVideoTab() {
                 isGeneratingPlans={isGeneratingPlans}
                 inferredTheme={inferredTheme}
 
-                // 가사 설정을 위한 상태값 넘겨주기
                 genre={genre} setGenre={setGenre}
                 mainLang={mainLang} setMainLang={setMainLang}
                 subLangs={subLangs} setSubLangs={setSubLangs}
