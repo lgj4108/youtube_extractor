@@ -87,23 +87,30 @@ export default function MusicVideoTab() {
         try {
             const response = await fetch('/api/music-generate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                // 💡 API로 vocalType 전송
                 body: JSON.stringify({ provider: aiProvider, apiKey, keyword: title, musicStyle, genre, vocalType, mainLang, subLangs, youtubeData: videos }),
             });
             const data = await response.json();
 
             if (!response.ok) throw new Error(data.error || '가사 생성 실패');
 
-            // 💡 배열로 넘어온 가사를 텍스트로 합쳐줌
             const generatedLyrics = Array.isArray(data.lyrics) ? data.lyrics.join('\n') : (data.lyrics || '결과를 받아오지 못했습니다.');
             const scenePrompts = data.scenePrompts || [];
 
-            setAiPlans(prev => prev.map((plan, i) => i === index ? {
-                ...plan,
-                lyrics: generatedLyrics,
-                scenePrompts: scenePrompts,
-                isGeneratingLyrics: false
-            } : plan));
+            // 💡 덮어쓰지 않고 히스토리에 차곡차곡 누적시킵니다!
+            setAiPlans(prev => prev.map((plan, i) => {
+                if (i === index) {
+                    const newVersion = { lyrics: generatedLyrics, scenePrompts };
+                    const updatedHistory = [...(plan.history || []), newVersion];
+                    return {
+                        ...plan,
+                        lyrics: generatedLyrics,
+                        scenePrompts: scenePrompts,
+                        history: updatedHistory, // 쌓인 히스토리 업데이트
+                        isGeneratingLyrics: false
+                    };
+                }
+                return plan;
+            }));
 
         } catch (err: any) {
             alert(`가사 생성 오류: ${err.message}`);

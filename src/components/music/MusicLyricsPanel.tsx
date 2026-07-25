@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { MusicAiPlan } from './MusicAiResult';
 
 interface MusicLyricsPanelProps {
@@ -6,6 +7,18 @@ interface MusicLyricsPanelProps {
 }
 
 export default function MusicLyricsPanel({ activePlan }: MusicLyricsPanelProps) {
+    // 💡 안전한 히스토리 배열 확보
+    const history = activePlan.history || [];
+    // 💡 현재 보고 있는 버전을 추적하는 State (기본값은 가장 최근 버전)
+    const [viewIndex, setViewIndex] = useState<number>(Math.max(0, history.length - 1));
+
+    // 새로운 버전이 생성되면 자동으로 최신 버전을 보여주도록 동기화
+    useEffect(() => {
+        if (history.length > 0) {
+            setViewIndex(history.length - 1);
+        }
+    }, [history.length]);
+
     if (activePlan.isGeneratingLyrics) {
         return (
             <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn flex flex-col items-center justify-center py-20">
@@ -15,20 +28,41 @@ export default function MusicLyricsPanel({ activePlan }: MusicLyricsPanelProps) 
         );
     }
 
-    if (!activePlan.lyrics) return null;
+    if (history.length === 0) return null;
+
+    // 현재 선택된 버전의 데이터
+    const currentView = history[viewIndex];
 
     return (
         <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn">
+
+            {/* 💡 버전 선택 탭 (히스토리가 2개 이상일 때만 노출) */}
+            {history.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <span className="text-xs font-bold text-slate-500 py-1.5 mr-2">🗂️ 버전 기록:</span>
+                    {history.map((_, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setViewIndex(idx)}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${viewIndex === idx ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                        >
+                            버전 {idx + 1} {idx === history.length - 1 && '(최신)'}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div className="flex flex-col lg:flex-row gap-8">
                 <div className="flex-[3]">
                     <div className="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">🎧 {activePlan.title}</h3>
-                        <button onClick={() => {navigator.clipboard.writeText(activePlan.lyrics!); alert('가사가 복사되었습니다.');}} className="text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/50 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg font-bold transition-colors">
-                            📋 가사 전체 복사
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">🎧 {activePlan.title} <span className="text-sm text-indigo-500 font-normal ml-2">- 버전 {viewIndex + 1}</span></h3>
+                        <button onClick={() => {navigator.clipboard.writeText(currentView.lyrics); alert(`버전 ${viewIndex + 1} 가사가 복사되었습니다.`);}} className="text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/50 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg font-bold transition-colors">
+                            📋 현재 가사 복사
                         </button>
                     </div>
                     <div className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-sans leading-loose bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-100 dark:border-slate-700">
-                        {activePlan.lyrics}
+                        {/* 💡 현재 선택된 버전의 가사 렌더링 */}
+                        {currentView.lyrics}
                     </div>
                 </div>
 
@@ -49,10 +83,11 @@ export default function MusicLyricsPanel({ activePlan }: MusicLyricsPanelProps) 
                     <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
                             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎬 뮤비 씬(Scene) 프롬프트</h4>
-                            <button onClick={() => {const all = activePlan.scenePrompts?.join('\n\n') || ''; navigator.clipboard.writeText(all); alert('전체 씬이 복사되었습니다.');}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">일괄 복사</button>
+                            <button onClick={() => {const all = currentView.scenePrompts?.join('\n\n') || ''; navigator.clipboard.writeText(all); alert(`버전 ${viewIndex + 1} 씬이 일괄 복사되었습니다.`);}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">일괄 복사</button>
                         </div>
                         <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
-                            {activePlan.scenePrompts?.map((p, idx) => (
+                            {/* 💡 현재 선택된 버전의 씬 프롬프트 렌더링 */}
+                            {currentView.scenePrompts?.map((p, idx) => (
                                 <div key={idx} onClick={() => {navigator.clipboard.writeText(p); alert(`Scene ${idx + 1} 복사됨`);}} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 break-words select-all hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer" title="클릭 복사">
                                     <span className="inline-block bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded text-[10px] mb-1">Scene {idx + 1}</span><br/>{p}
                                 </div>

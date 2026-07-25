@@ -5,13 +5,20 @@ import MusicProductionSettings from './MusicProductionSettings';
 import MusicPlanCards from './MusicPlanCards';
 import MusicLyricsPanel from './MusicLyricsPanel';
 
+// 💡 새롭게 추가된 버전 히스토리 타입
+export interface LyricsVersion {
+    lyrics: string;
+    scenePrompts: string[];
+}
+
 export interface MusicAiPlan {
     title: string;
     musicStyle: string;
     musicStyleKor?: string;
     midjourneyPrompt: string;
-    lyrics?: string;
-    scenePrompts?: string[];
+    lyrics?: string; // (하위 호환용으로 남겨둠)
+    scenePrompts?: string[]; // (하위 호환용으로 남겨둠)
+    history?: LyricsVersion[]; // 💡 여러 번 생성한 결과를 배열로 저장!
     isGeneratingLyrics?: boolean;
 }
 
