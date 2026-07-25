@@ -6,13 +6,13 @@ import { generateText } from 'ai';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { provider, apiKey, keyword, musicStyle, genre, vocalType, mainLang, subLangs, youtubeData = [] } = body;
+        const { provider, apiKey, keyword, musicStyle, genre, vocalType, mainLang = 'KR', subLangs = [], youtubeData = [], customPrompt = '' } = body;
 
         let aiModel;
-
         if (provider === 'gemini') {
             const google = createGoogleGenerativeAI({ apiKey });
-            aiModel = google('models/gemini-1.5-pro-latest');
+            // 💡 2026년 최신 Vercel AI SDK 대응: 'gemini-3.5-flash' 로 완전히 변경!
+            aiModel = google('gemini-3.5-flash');
         } else if (provider === 'groq') {
             const groq = createOpenAI({ baseURL: 'https://api.groq.com/openai/v1', apiKey });
             aiModel = groq('llama-3.3-70b-versatile');
@@ -21,45 +21,53 @@ export async function POST(request: Request) {
             aiModel = openai('gpt-4o-mini');
         }
 
-        // 💡 프롬프트 수정: 메인/서브 언어의 비율과 역할을 아주 엄격하게 통제합니다.
+        const langMap: Record<string, string> = { 'KR': 'Korean', 'EN': 'English', 'JP': 'Japanese' };
+        const fullMainLang = langMap[mainLang] || 'Korean';
+        const fullSubLangs = subLangs.map((l: string) => langMap[l] || l);
+
+        const roleAndCustom = customPrompt.trim() !== ''
+            ? `[디렉터(사용자)의 특별 연출 지시사항]\n${customPrompt}`
+            : `너는 트렌디한 글로벌 K-Pop 프로듀서이자 뮤직비디오 감독이야.`;
+
         const prompt = `
-        너는 트렌디한 글로벌 K-Pop 프로듀서이자 뮤직비디오 감독이야.
-        주제/컨셉: "${keyword}"
-        음악 스타일(Suno/Udio 태그): ${musicStyle || '지정되지 않음'}
-        장르: ${genre}
-        보컬 타입: ${vocalType === 'Auto' ? '장르에 맞게 자동' : vocalType}
+        ${roleAndCustom}
+
+        [시스템 제공 데이터 및 곡 정보]
+        - 곡 제목/주제: "${keyword}"
+        - 음악 스타일: ${musicStyle || '지정되지 않음'}
+        - 장르: ${genre}
         
-        [완벽한 작사 및 기획을 위한 엄격한 원칙]
-        1. 🌐 언어 통제 및 황금비율 믹스 (매우 중요):
-           - 메인 언어: ${mainLang} (가사 전체의 80~90% 비중 차지)
-           - 보조 언어: ${subLangs.length > 0 ? subLangs.join(', ') : '없음'} (가사 전체의 10~20% 비중 차지)
-           - 보조 언어가 '없음'인 경우 오직 메인 언어로만 작사해.
-           - [핵심 주의사항] 보조 언어가 있더라도 절대 보조 언어로 문단을 도배하지 마. 메인 언어(${mainLang})로 완벽한 문장과 서사를 이끌어가고, 보조 언어는 포인트가 되는 짧은 단어, 라임을 맞추기 위한 끝 단어, 훅(Hook)의 펀치라인, 또는 추임새 정도로만 감칠맛 나게 섞어줘.
-           - 지정되지 않은 외계어나 다른 나라 언어는 절대 금지.
-
-        2. 🎵 분량 및 곡 구조:
-           - [Intro], [Verse], [Pre-Chorus], [Chorus], [Bridge], [Outro] 등을 유연하게 사용하여 3분 분량의 상업용 가사를 완성해. 각 파트는 2~8줄로 리듬감 있게 써.
-
-        3. 🎬 씬(Scene) 프롬프트 1:1 동기화:
-           - 네가 작성한 가사의 **모든 파트(문단)마다 1:1로 대응되는 새로운 씬 프롬프트를 무조건 작성**해. (프롬프트는 무조건 영어로, 끝에 --ar 16:9 포함)
-
-        [JSON 생성 오류 방지 가이드 - 매우 중요!]
-        가사(lyrics) 작성 시 일반 문자열 안에서 실제 줄바꿈(엔터)을 절대로 하지 마.
-        오류를 막기 위해 가사는 **반드시 문자열의 배열(Array of strings) 형태**로 응답해.
+        [⚠️ 절대 변경 불가: 작사 및 기획 시스템 코어 규칙]
+        1. 🌐 언어 통제 및 환각(Hallucination) 방지:
+           - 메인 언어(${fullMainLang})와 보조 언어(${fullSubLangs.length > 0 ? fullSubLangs.join(', ') : '없음'})만 사용해.
+           - [경고] 중국어(한자), 러시아어(키릴 문자), 스페인어 등 지정되지 않은 언어는 단 한 글자도 출력하지 마. 어길 시 시스템 오류가 발생함.
+        2. 🎵 곡 구조 및 분량 (2분 30초 ~ 4분 최적화):
+           - 곡의 장르에 맞게 파트 구조([Intro], [Verse], [Rap], [Pre-Chorus], [Chorus], [Drop], [Bridge], [Outro] 등)를 자유롭게 기획해.
+           - [분량 가이드] 너무 짧지도, 지루하게 늘어지지도 않게 실제 음원 기준 '2분 30초 ~ 4분' 사이의 길이가 되도록 기획해 (일반적으로 5~8개 파트 내외).
+           - 각 파트는 음악적 흐름에 맞게 4~8줄 사이로 구성하고, 끝단어의 라임(Rhyme)을 살려 리듬감 있게 써줘.
+        3. 🎬 씬 동기화: 가사의 모든 파트마다 1:1 대응되는 씬 프롬프트 작성 (100% 영어, 끝에 --ar 16:9 포함).
+        4. 🛡️ JSON 출력: 가사(lyrics)는 줄바꿈(\n) 없는 문자열 배열(Array of strings)이어야 함. 파트 사이의 띄어쓰기는 빈 문자열("")로 넣어.
 
         반드시 아래 JSON 형식으로만 응답해.
         {
             "lyrics": [
-                "[Intro]",
-                "가사 첫 번째 줄",
-                "가사 두 번째 줄",
+                "[장르에 맞는 자유로운 파트 태그]",
+                "리듬을 타며 부르기 좋게",
+                "글자 수를 적당히 맞춰서",
+                "최소 4줄 이상 꽉 채워서",
                 "",
-                "[Verse 1]",
+                "[다음 파트 태그]",
+                "라임이 딱 떨어지는 트렌디한 가사",
+                "호흡이 자연스럽게 이어지도록",
+                "2분 30초에서 4분 사이의 트렌디한 곡 길이가 되도록",
+                "적당한 분량(5~8개 파트)으로 기획해줘",
+                "",
+                "[Chorus]",
                 "..."
             ],
             "scenePrompts": [
-                "Scene 1: A neon-lit cyberpunk street scene --ar 16:9",
-                "Scene 2: Close up of the singer --ar 16:9"
+                "Scene 1: A neon-lit cyberpunk street scene at night, atmospheric fog, cinematic lighting --ar 16:9",
+                "Scene 2: Close up of the singer looking directly at the camera with an intense expression --ar 16:9"
             ]
         }
         `;
@@ -70,11 +78,11 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             lyrics: parsedData.lyrics,
-            scenePrompts: parsedData.scenePrompts
+            scenePrompts: parsedData.scenePrompts,
+            usedPrompt: prompt
         });
 
     } catch (error: any) {
-        console.error("Music Generate Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
