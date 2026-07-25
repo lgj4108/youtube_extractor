@@ -1,8 +1,8 @@
 'use client';
 import { useState, FormEvent, useEffect } from 'react';
 import { YouTubeVideo } from '@/types/youtube';
-import MusicSearchForm from './MusicSearchForm';
-import MusicAiResult, { MusicAiPlan } from './MusicAiResult';
+import MusicSearchForm from './music/MusicSearchForm';
+import MusicAiResult, { MusicAiPlan } from './music/MusicAiResult';
 import AiSettingsModal from './planner/AiSettingsModal';
 
 export default function MusicVideoTab() {
