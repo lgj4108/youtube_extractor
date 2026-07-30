@@ -9,7 +9,7 @@ interface MusicLyricsPanelProps {
 }
 
 export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }: MusicLyricsPanelProps) {
-    const history = activePlan.history || [];
+    const history = activePlan?.history || [];
     const [viewIndex, setViewIndex] = useState<number>(Math.max(0, history.length - 1));
 
     useEffect(() => {
@@ -18,7 +18,7 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
         }
     }, [history.length]);
 
-    if (activePlan.isGeneratingLyrics) {
+    if (activePlan?.isGeneratingLyrics) {
         return (
             <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn flex flex-col items-center justify-center py-20">
                 <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
