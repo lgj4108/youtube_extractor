@@ -56,26 +56,26 @@ export async function POST(request: Request) {
         유튜브 데이터에 '조선힙합' 같은 전통적 키워드가 있더라도 '해금', '가야금', '한복', '조선' 같은 1차원적인 국악/사극 단어를 제목이나 기획안 텍스트에 절대 직접 쓰지 마라.
         동양적인 선율은 'musicStyle' 태그에만 영어로 반영하고, 전체적인 분위기는 철저하게 현대적이고 세련된 요즘 힙합 감성으로 트렌디하게 풀어내라.
         
-        [⚠️ 언어 강제 규칙]
-        - 'musicStyle'과 'midjourneyPrompt' 항목을 제외한 **모든 내용(inferredTheme, title, musicStyleKor)은 반드시 ${fullMainLang} 언어로만** 작성해라. ${noHanjaRule}
-        - 'musicStyle' 항목: Suno/Udio 같은 생성기에 입력할 수 있는 영어 태그. 보컬 타입과 언어 규칙(${langGuide})을 반드시 영어로 포함.
-        - 'midjourneyPrompt' 항목: 앨범 커버 프롬프트(영어, 끝에 '--ar 16:9' 필수).
-        - 'musicStyleKor' 항목: 'musicStyle'에 적은 영어 태그를 **반드시 ${fullMainLang} 언어로 번역해서** 적을 것.
+        [⚠️ 필수 작성 규칙]
+        0. 출력 언어: 'musicStyle'과 'midjourneyPrompt' 항목을 제외한 모든 내용(inferredTheme, title, musicStyleKor)은 반드시 ${fullMainLang} 언어로만 작성해라. ${noHanjaRule}
+        1. 'musicStyle' 항목: Suno/Udio용 영어 태그로 작성하되, **보컬 타입, 언어 규칙(${langGuide}), 그리고 반드시 곡의 속도/템포(예: 90 bpm, 120 bpm)를 포함**시켜라.
+        2. 'midjourneyPrompt' 항목: 앨범 커버용 미드저니 프롬프트(영어, 끝에 '--ar 16:9' 필수).
+        3. 'musicStyleKor' 항목: 'musicStyle'에 적은 영어 태그(속도/BPM 표현 포함)를 **반드시 ${fullMainLang} 언어로 번역해서** 적을 것.
         `;
 
-        // 💡 [가장 강력한 해결책] generateObject와 Zod 스키마를 사용하여 구조화된 객체를 강제로 반환받습니다.
         const { object } = await generateObject({
             model: aiModel,
-            system: `You are a strict JSON generator. You must respond ONLY with valid data matching the schema. All general fields MUST be in ${fullMainLang}. If ${fullMainLang} is Korean, DO NOT USE ANY Chinese characters (Hanja). Use pure Hangul only.`,
+            system: `You are a strict JSON generator. You must respond ONLY with valid data matching the schema. All general fields MUST be in ${fullMainLang}. If ${fullMainLang} is Korean, DO NOT USE ANY Chinese characters (Hanja). Use pure Hangul only. Always include BPM/tempo in musicStyle.`,
             prompt: prompt,
             schema: z.object({
-                inferredTheme: z.string().describe(`(${fullMainLang} 언어) 데이터들을 관통하는 핵심 음악 트렌드`),
+                inferredTheme: z.string().describe(`(${fullMainLang} 언어) 핵심 음악 트렌드`),
                 plans: z.array(z.object({
-                    title: z.string().describe(`(${fullMainLang} 언어) 창작 곡 제목`),
-                    musicStyle: z.string().describe(`(English) Suno/Udio용 영어 음악 스타일 태그`),
-                    musicStyleKor: z.string().describe(`(${fullMainLang} 언어) 위 영어 스타일 태그 한글 번역`),
-                    midjourneyPrompt: z.string().describe(`(English) 앨범 커버나 뮤비 썸네일로 쓸 미드저니 프롬프트 (--ar 16:9 필수)`)
-                })).length(3).describe("3가지의 창작 곡 기획안 배열")
+                    title: z.string().describe(`(${fullMainLang} 언어) 곡 제목`),
+                    // 💡 속도(BPM) 포함을 스키마 설명에 명시해 줍니다.
+                    musicStyle: z.string().describe(`(English) Suno/Udio용 영어 음악 스타일 태그 (보컬, 장르, 분위기, BPM/속도 필수 포함 예: Female Korean vocal, melodic emo rap beat, 95 bpm)`),
+                    musicStyleKor: z.string().describe(`(${fullMainLang} 언어) 위 영어 스타일 태그 한글 번역 (BPM/속도 포함)`),
+                    midjourneyPrompt: z.string().describe(`(English) 앨범 커버 미드저니 프롬프트 (--ar 16:9 필수)`)
+                })).length(3)
             }),
             temperature: 0.8
         });
