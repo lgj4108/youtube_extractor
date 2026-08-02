@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateObject } from 'ai'; // 💡 generateText 대신 generateObject를 가져옵니다.
-import { z } from 'zod'; // 💡 TypeScript와 완벽하게 호환되는 스키마 검증 라이브러리입니다.
+import { generateText } from 'ai'; // 💡 다시 안정적인 generateText로 변경
 
 export async function POST(request: Request) {
     try {
@@ -33,13 +32,14 @@ export async function POST(request: Request) {
             : `strictly in ${fullMainLang} language`;
 
         const roleAndCustom = customPrompt.trim() !== ''
-            ? `[디렉터(사용자)의 특별 연출 지시사항]\\n${customPrompt}`
+            ? `[디렉터(사용자)의 특별 연출 지시사항]\n${customPrompt}`
             : `너는 트렌드를 선도하는 글로벌 K-Pop/힙합 프로듀서야.`;
 
         const noHanjaRule = fullMainLang === 'Korean'
             ? '절대로 한자(Chinese characters)를 섞어 쓰지 말고 오직 순수 한글로만 작성해라.'
             : '';
 
+        // 💡 [핵심 수정] BPM 필수 포함 및 JSON 출력 형식 명시
         const prompt = `
         ${roleAndCustom}
 
@@ -56,32 +56,49 @@ export async function POST(request: Request) {
         유튜브 데이터에 '조선힙합' 같은 전통적 키워드가 있더라도 '해금', '가야금', '한복', '조선' 같은 1차원적인 국악/사극 단어를 제목이나 기획안 텍스트에 절대 직접 쓰지 마라.
         동양적인 선율은 'musicStyle' 태그에만 영어로 반영하고, 전체적인 분위기는 철저하게 현대적이고 세련된 요즘 힙합 감성으로 트렌디하게 풀어내라.
         
-        [⚠️ 필수 작성 규칙]
+        [⚠️ 절대 변경 불가: 시스템 필수 조건 및 언어 강제 규칙]
         0. 출력 언어: 'musicStyle'과 'midjourneyPrompt' 항목을 제외한 모든 내용(inferredTheme, title, musicStyleKor)은 반드시 ${fullMainLang} 언어로만 작성해라. ${noHanjaRule}
-        1. 'musicStyle' 항목: Suno/Udio용 영어 태그로 작성하되, **보컬 타입, 언어 규칙(${langGuide}), 그리고 반드시 곡의 속도/템포(예: 90 bpm, 120 bpm)를 포함**시켜라.
+        1. 'musicStyle' 항목: Suno/Udio용 영어 태그. 보컬 타입, 언어 규칙(${langGuide}), 그리고 반드시 **음악 속도/BPM (예: 95 bpm, 120 bpm)**을 포함시켜라.
         2. 'midjourneyPrompt' 항목: 앨범 커버용 미드저니 프롬프트(영어, 끝에 '--ar 16:9' 필수).
-        3. 'musicStyleKor' 항목: 'musicStyle'에 적은 영어 태그(속도/BPM 표현 포함)를 **반드시 ${fullMainLang} 언어로 번역해서** 적을 것.
+        3. 'musicStyleKor' 항목: 'musicStyle'에 적은 영어 태그(BPM 포함)를 반드시 ${fullMainLang} 언어로 번역해서 적을 것.
+        4. 오직 아래의 JSON 객체 형식으로만 응답하고, 마크다운이나 인사말, 다른 설명은 절대 일체 금지.
+        
+        {
+            "inferredTheme": "(${fullMainLang} 언어) 핵심 음악 트렌드",
+            "plans": [
+                {
+                    "title": "(${fullMainLang} 언어) 곡 제목",
+                    "musicStyle": "(English) Suno/Udio용 영어 음악 스타일 태그 (보컬, 장르, 분위기, BPM/속도 필수 포함)",
+                    "musicStyleKor": "(${fullMainLang} 언어) 위 영어 스타일 태그 한글 번역 (BPM 포함)",
+                    "midjourneyPrompt": "(English) 앨범 커버 프롬프트 (--ar 16:9 필수)"
+                }
+            ]
+        }
         `;
 
-        const { object } = await generateObject({
+        const { text } = await generateText({
             model: aiModel,
-            system: `You are a strict JSON generator. You must respond ONLY with valid data matching the schema. All general fields MUST be in ${fullMainLang}. If ${fullMainLang} is Korean, DO NOT USE ANY Chinese characters (Hanja). Use pure Hangul only. Always include BPM/tempo in musicStyle.`,
+            system: `You are a strict JSON generator. You must respond ONLY with valid JSON. All general fields MUST be in ${fullMainLang}. If ${fullMainLang} is Korean, DO NOT USE ANY Chinese characters (Hanja). Use pure Hangul only. Always include BPM/tempo in musicStyle. Do not add any conversational text before or after the JSON.`,
             prompt: prompt,
-            schema: z.object({
-                inferredTheme: z.string().describe(`(${fullMainLang} 언어) 핵심 음악 트렌드`),
-                plans: z.array(z.object({
-                    title: z.string().describe(`(${fullMainLang} 언어) 곡 제목`),
-                    // 💡 속도(BPM) 포함을 스키마 설명에 명시해 줍니다.
-                    musicStyle: z.string().describe(`(English) Suno/Udio용 영어 음악 스타일 태그 (보컬, 장르, 분위기, BPM/속도 필수 포함 예: Female Korean vocal, melodic emo rap beat, 95 bpm)`),
-                    musicStyleKor: z.string().describe(`(${fullMainLang} 언어) 위 영어 스타일 태그 한글 번역 (BPM/속도 포함)`),
-                    midjourneyPrompt: z.string().describe(`(English) 앨범 커버 미드저니 프롬프트 (--ar 16:9 필수)`)
-                })).length(3)
-            }),
             temperature: 0.8
         });
 
-        // object 변수에는 이미 완벽하게 파싱된 자바스크립트 객체가 들어있습니다. JSON.parse()가 필요 없습니다!
-        return NextResponse.json({ ...object, usedPrompt: prompt });
+        // 💡 [파싱 에러 원천 차단] AI가 뱉은 텍스트에서 완벽하게 JSON 알맹이({})만 추출합니다.
+        let rawText = text;
+        const match = rawText.match(/\{[\s\S]*\}/);
+        if (match) {
+            rawText = match[0];
+        }
+
+        // 보이지 않는 제어 문자와 마크다운 찌꺼기 제거
+        let cleanText = rawText.replace(/[\u0000-\u001F\u007F-\u009F]/g, function (m) {
+            if (m === '\n' || m === '\t') return m;
+            return '\\u' + ('0000' + m.charCodeAt(0).toString(16)).slice(-4);
+        });
+
+        const parsedData = JSON.parse(cleanText);
+
+        return NextResponse.json({ ...parsedData, usedPrompt: prompt });
 
     } catch (error: any) {
         console.error("Plan Generation Error:", error);
