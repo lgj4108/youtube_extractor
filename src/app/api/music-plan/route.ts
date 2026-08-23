@@ -71,14 +71,16 @@ export async function POST(request: Request) {
 
         [응답 구성]
         - 제목과 설명은 ${langGuide}으로 자연스럽게 작성해.
-        - musicStyle은 Suno의 "Style of Music" 입력란에 그대로 붙여넣을 수 있는 한 줄짜리 영어 조건 목록으로 작성해. 문장이나 줄거리로 서술하지 마.
-        - 다음 콜론 구조를 유지하고 각 범주 안에서는 쉼표로 조건을 구분해: genre: "..."; vocal: "..."; instrumentation: "..."; style tags: "..."; production: "..."; tempo: "...".
-        - 전체 핵심 조건은 대략 8~15개로 제한하고, 영향력이 큰 조건부터 짧고 명확하게 써. and, with, about 같은 불필요한 연결어를 쓰지 마.
+        - musicStyle은 Suno의 "Style of Music" 입력란에 그대로 붙여넣을 수 있는 자연스러운 영어 설명으로 작성해.
+        - genre:, vocal:, instrumentation:, style tags:, production:, tempo: 같은 필드명, JSON 형태, 불필요한 따옴표를 출력하지 마. 내부적으로는 이 범주들을 점검하되 최종 결과는 2~4개의 간결한 문장으로 자연스럽게 연결해.
+        - 첫 문장에서 핵심 하위 장르, 시대감, 숫자 BPM, 조성 또는 전체 질감을 명확히 제시하고, 이어서 보컬과 주요 악기, 마지막으로 편곡·믹싱·공간감·다이내믹을 설명해.
+        - 전체 핵심 조건은 대략 8~15개, 40~80단어로 제한하고 영향력이 큰 조건부터 배치해. 서로 관련된 조건은 led by, with, driven by 같은 짧은 연결 표현으로 묶어 읽기 쉬운 제작 지시로 만들어.
         - genre에는 넓은 장르명 하나만 쓰지 말고 하위 장르에 질감, 시대감, 연주 방식 중 관련 보정 요소 2~3개를 결합해.
         - 감정이나 상황을 설명하는 문장 대신 minor key feel, sparse arrangement, soft dynamics처럼 실제로 들리는 사운드 특성으로 변환해.
         - instrumentation에는 악기 이름만 나열하지 말고 fingerpicking, muted, distorted, dry recording처럼 핵심 악기의 연주법이나 소리 질감을 함께 명시해.
         - vocal에는 보컬 타입, 음색, 전달 방식, 마이킹 중 곡에 중요한 것만 담고, tempo에는 숫자 BPM과 체감 속도를 담아.
-        - 가사, 장면 묘사, 곡의 줄거리, 목표 재생 시간을 musicStyle에 섞지 마. 원하지 않는 요소도 사용자가 명시한 경우에만 마지막에 exclusions: "..." 범주로 덧붙여.
+        - 가사, 장면 묘사, 곡의 줄거리, 목표 재생 시간, [Intro]·[Verse] 같은 섹션 태그, 효과음 지시는 musicStyle에 섞지 마. 이런 구조·연출 지시는 가사 생성 단계에서만 사용해.
+        - 사용자가 원하지 않는 요소를 명시했다면 마지막 문장에 자연스러운 영어로 짧게 제외 조건을 설명하되 exclusions: 같은 필드명은 쓰지 마.
         - musicStyleKor은 musicStyle의 음악 설계를 ${fullMainLang}로 간단히 설명해.
         - 각 콘셉트에 Suno Creative Sliders 추천값인 weirdness와 styleInfluence를 0~100 사이의 5 단위 정수로 제안해. 이 값들은 musicStyle 문자열 안에 넣지 말고 별도 필드로 출력해.
         - Weirdness는 50을 균형 기준으로 삼아 대중적이고 안정적인 곡은 30~50, 적당히 개성적인 곡은 50~65, 실험·글리치·예측 불가능성이 핵심인 곡은 65~85 범위에서 선택해. 특별한 이유 없이 0이나 100을 쓰지 마.
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
             "plans": [
                 {
                     "title": "(${fullMainLang} 언어) 곡 제목",
-                    "musicStyle": "genre: \\"subgenre, era or texture\\"; vocal: \\"voice and delivery\\"; instrumentation: \\"instrument and playing style\\"; style tags: \\"audible qualities\\"; production: \\"recording and dynamics\\"; tempo: \\"numeric BPM, tempo feel\\"",
+                    "musicStyle": "90s underground boom bap at 90 BPM in a dark minor key, led by a sharp female rap vocal with a cynical tone and double-tracked chorus layers. Chopped jazz guitar samples, heavy vinyl snares, punchy kicks, and upright bass drive a gritty head-nodding groove. Raw analog tape saturation and lo-fi compression, with narrow close-mic verses and wider layered choruses.",
                     "musicStyleKor": "(${fullMainLang}) 스타일 설명",
                     "weirdness": 55,
                     "styleInfluence": 80,
@@ -105,7 +107,7 @@ export async function POST(request: Request) {
 
         const { text } = await generateText({
             model: aiModel,
-            system: `Create original music concepts from the user's intent. Return valid JSON matching the requested schema so the application can parse it. Prefer ${fullMainLang} for general fields while allowing natural genre terms and loanwords.`,
+            system: `Create original music concepts from the user's intent. Return valid JSON matching the requested schema so the application can parse it. Prefer ${fullMainLang} for general fields while allowing natural genre terms and loanwords. Write musicStyle as a polished, paste-ready English Suno style description in natural prose; never expose category labels such as genre:, vocal:, instrumentation:, production:, or tempo:.`,
             prompt: prompt,
             temperature: 0.8
         });
