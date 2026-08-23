@@ -61,7 +61,7 @@ export default function CreatorDashboard() {
                         <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                             <span className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">✓ 이 브라우저에 자동 저장</span>
                             <button type="button" onClick={() => setIsSettingsOpen(true)} className={`rounded-full px-3 py-2 transition ${apiKey ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300'}`}>
-                                {apiKey ? `● ${aiProvider.toUpperCase()} 연결됨` : '○ AI 연결 필요'}
+                                {apiKey ? `● ${aiProvider.toUpperCase()} 키 저장됨` : '○ AI 설정 필요'}
                             </button>
                         </div>
                     </section>
