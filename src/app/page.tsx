@@ -7,6 +7,7 @@ import TranscriptTab from '@/components/TranscriptTab';
 import MusicMasteringTab from '@/components/music/MusicMasteringTab';
 import AiSettingsModal from '@/components/planner/AiSettingsModal';
 import { useStoredString } from '@/lib/storage';
+import { defaultModelFor, modelName } from '@/lib/ai-models';
 
 const TABS = [
     { id: 'planner', label: '유튜브 기획', icon: '✨' },
@@ -26,6 +27,7 @@ export default function CreatorDashboard() {
     const [theme, setTheme] = useStoredString('creator_theme', 'light');
     const [projectName, setProjectName] = useStoredString('creator_project_name', '새 크리에이터 프로젝트');
     const [aiProvider, setAiProvider] = useStoredString('ai_provider', 'gemini');
+    const [aiModel, setAiModel] = useStoredString('ai_model', defaultModelFor(aiProvider));
     const [apiKey, setApiKey] = useStoredString('ai_api_key', '');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const activeTab = isTabId(storedTab) ? storedTab : 'planner';
@@ -33,7 +35,7 @@ export default function CreatorDashboard() {
 
     return (
         <div className={isDark ? 'dark' : ''}>
-            {isSettingsOpen && <AiSettingsModal onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} apiKey={apiKey} setApiKey={setApiKey} />}
+            {isSettingsOpen && <AiSettingsModal onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} model={aiModel} setModel={setAiModel} apiKey={apiKey} setApiKey={setApiKey} />}
             <main className="min-h-screen bg-slate-50 px-4 py-8 transition-colors duration-200 dark:bg-slate-950 sm:px-6 sm:py-12">
                 <div className="mx-auto w-full max-w-6xl">
                     <header className="mb-8 flex items-start justify-between gap-4">
@@ -61,7 +63,7 @@ export default function CreatorDashboard() {
                         <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                             <span className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">✓ 이 브라우저에 자동 저장</span>
                             <button type="button" onClick={() => setIsSettingsOpen(true)} className={`rounded-full px-3 py-2 transition ${apiKey ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300'}`}>
-                                {apiKey ? `● ${aiProvider.toUpperCase()} 키 저장됨` : '○ AI 설정 필요'}
+                                {apiKey ? `● ${modelName(aiProvider, aiModel)} · 키 저장됨` : '○ AI 설정 필요'}
                             </button>
                         </div>
                     </section>

@@ -6,7 +6,7 @@ import { errorResponse, optionalString, optionalStringArray, readJsonObject, req
 export async function POST(request: Request) {
     try {
         const body = await readJsonObject(request);
-        const aiModel = createAiModel(body, { geminiModel: 'gemini-3.5-flash' });
+        const aiModel = createAiModel(body);
         const keyword = requiredString(body, 'keyword', '곡 제목 또는 주제를 입력해주세요.');
         const musicStyle = optionalString(body, 'musicStyle', '지정되지 않음');
         const genre = optionalString(body, 'genre', 'K-POP');

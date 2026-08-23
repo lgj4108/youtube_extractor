@@ -9,6 +9,7 @@ import PromptEditor from './planner/PromptEditor';
 import { copyText, fetchJson } from '@/lib/http';
 import { getErrorMessage } from '@/lib/errors';
 import { useStoredJson, useStoredString, writeStoredString } from '@/lib/storage';
+import { defaultModelFor } from '@/lib/ai-models';
 
 const EMPTY_SAVED_VIDEOS: YouTubeVideo[] = [];
 const EMPTY_SEARCH_VIDEOS: YouTubeVideo[] = [];
@@ -37,6 +38,7 @@ export default function PlannerTab() {
 
     const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
     const [aiProvider, setAiProvider] = useStoredString('ai_provider', 'gemini');
+    const [aiModel, setAiModel] = useStoredString('ai_model', defaultModelFor(aiProvider));
     const [apiKey, setApiKey] = useStoredString('ai_api_key', '');
     const [aiPlans, setAiPlans] = useStoredJson<AiPlan[]>('planner_ai_plans', EMPTY_AI_PLANS);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -88,7 +90,7 @@ export default function PlannerTab() {
         try {
             const data = await fetchJson<{ plans?: AiPlan[]; inferredTheme?: string }>('/api/generate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, apiKey, concept, youtubeData: currentDisplayData }),
+                body: JSON.stringify({ provider: aiProvider, model: aiModel, apiKey, concept, youtubeData: currentDisplayData }),
             });
             setAiPlans(data.plans || []);
             setInferredTheme(data.inferredTheme || '');
@@ -106,7 +108,7 @@ export default function PlannerTab() {
         try {
             const data = await fetchJson<{ script: string }>('/api/script', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, apiKey, title, systemPrompt: inferredTheme || concept, format }),
+                body: JSON.stringify({ provider: aiProvider, model: aiModel, apiKey, title, systemPrompt: inferredTheme || concept, format }),
             });
 
             setAiPlans(prev => prev.map((plan, i) => i === index ? {
@@ -130,7 +132,7 @@ export default function PlannerTab() {
 
     return (
         <div className="animate-fadeIn relative">
-            {isSettingsOpen && <AiSettingsModal onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} apiKey={apiKey} setApiKey={setApiKey} />}
+            {isSettingsOpen && <AiSettingsModal onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} model={aiModel} setModel={setAiModel} apiKey={apiKey} setApiKey={setApiKey} />}
 
             <SearchForm keyword={keyword} setKeyword={setKeyword} period={period} setPeriod={setPeriod} duration={duration} setDuration={setDuration} region={region} setRegion={setRegion} onSubmit={handleFetchYoutube} loading={loading} />
 

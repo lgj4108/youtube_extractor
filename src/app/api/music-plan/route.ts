@@ -11,7 +11,7 @@ interface MusicPlanningSource {
 export async function POST(request: Request) {
     try {
         const body = await readJsonObject(request);
-        const aiModel = createAiModel(body, { geminiModel: 'gemini-3.5-flash' });
+        const aiModel = createAiModel(body);
         const youtubeData = Array.isArray(body.youtubeData) ? body.youtubeData : [];
         const creativeKeyword = optionalString(body, 'creativeKeyword').slice(0, 500);
         const genre = optionalString(body, 'genre', 'K-POP / 댄스');

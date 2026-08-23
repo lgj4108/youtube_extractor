@@ -7,6 +7,7 @@ import AiSettingsModal from './planner/AiSettingsModal';
 import { fetchJson } from '@/lib/http';
 import { getErrorMessage } from '@/lib/errors';
 import { useStoredJson, useStoredString } from '@/lib/storage';
+import { defaultModelFor } from '@/lib/ai-models';
 
 const DEFAULT_GENRES = ['K-POP'];
 const EMPTY_LANGUAGES: string[] = [];
@@ -33,6 +34,7 @@ export default function MusicVideoTab() {
 
     const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
     const [aiProvider, setAiProvider] = useStoredString('ai_provider', 'gemini');
+    const [aiModel, setAiModel] = useStoredString('ai_model', defaultModelFor(aiProvider));
     const [apiKey, setApiKey] = useStoredString('ai_api_key', '');
 
     const handleReset = () => {
@@ -74,7 +76,7 @@ export default function MusicVideoTab() {
         try {
             const data = await fetchJson<{ plans?: MusicAiPlan[]; inferredTheme?: string; usedPrompt?: string }>('/api/music-plan', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, apiKey, creativeKeyword: keyword.trim(), youtubeData, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
+                body: JSON.stringify({ provider: aiProvider, model: aiModel, apiKey, creativeKeyword: keyword.trim(), youtubeData, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
             });
 
             setAiPlans(data.plans || []);
@@ -104,7 +106,7 @@ export default function MusicVideoTab() {
         try {
             const data = await fetchJson<{ lyrics?: string[] | string; scenePrompts?: string[]; usedPrompt?: string }>('/api/music-generate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, apiKey, keyword: title, musicStyle, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
+                body: JSON.stringify({ provider: aiProvider, model: aiModel, apiKey, keyword: title, musicStyle, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
             });
 
             const generatedLyrics = Array.isArray(data.lyrics) ? data.lyrics.join('\n') : (data.lyrics || '결과를 받아오지 못했습니다.');
@@ -127,7 +129,7 @@ export default function MusicVideoTab() {
 
     return (
         <div className="animate-fadeIn relative pb-20">
-            {isSettingsOpen && <AiSettingsModal onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} apiKey={apiKey} setApiKey={setApiKey} />}
+            {isSettingsOpen && <AiSettingsModal onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} model={aiModel} setModel={setAiModel} apiKey={apiKey} setApiKey={setApiKey} />}
 
             <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-4">
                 <button

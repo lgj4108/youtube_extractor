@@ -3,26 +3,27 @@ import 'server-only';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
-import { RequestError, type JsonObject, requiredString } from '@/lib/server/api';
+import { defaultModelFor, isAiProvider, isModelForProvider } from '@/lib/ai-models';
+import { optionalString, RequestError, type JsonObject, requiredString } from '@/lib/server/api';
 
 export type AiProvider = 'gemini' | 'groq' | 'openai';
 
-interface ModelOptions {
-    geminiModel?: string;
-}
-
-export function createAiModel(body: JsonObject, options: ModelOptions = {}): LanguageModel {
-    const provider = requiredString(body, 'provider', 'AI 모델 제공자를 선택해주세요.') as AiProvider;
+export function createAiModel(body: JsonObject): LanguageModel {
+    const provider = requiredString(body, 'provider', 'AI 모델 제공자를 선택해주세요.');
     const apiKey = requiredString(body, 'apiKey', 'API 키가 설정되지 않았습니다.');
+    if (!isAiProvider(provider)) throw new RequestError('지원하지 않는 AI 모델 제공자입니다.');
+    const requestedModel = optionalString(body, 'model');
+    const model = requestedModel || defaultModelFor(provider);
+    if (!isModelForProvider(provider, model)) throw new RequestError('선택한 제공자에서 지원하지 않는 모델입니다.');
 
     if (provider === 'gemini') {
-        return createGoogleGenerativeAI({ apiKey })(options.geminiModel ?? 'gemini-2.0-flash');
+        return createGoogleGenerativeAI({ apiKey })(model);
     }
     if (provider === 'groq') {
-        return createOpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' })('llama-3.3-70b-versatile');
+        return createOpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' })(model);
     }
     if (provider === 'openai') {
-        return createOpenAI({ apiKey })('gpt-4o-mini');
+        return createOpenAI({ apiKey })(model);
     }
     throw new RequestError('지원하지 않는 AI 모델 제공자입니다.');
 }

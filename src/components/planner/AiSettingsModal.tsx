@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { fetchJson } from '@/lib/http';
 import { getErrorMessage } from '@/lib/errors';
+import { AI_MODELS, defaultModelFor, isAiProvider, isModelForProvider } from '@/lib/ai-models';
 
 interface AiSettingsModalProps {
     onClose: () => void;
     provider: string;
     setProvider: (val: string) => void;
+    model: string;
+    setModel: (val: string) => void;
     apiKey: string;
     setApiKey: (val: string) => void;
 }
@@ -49,20 +52,24 @@ function keyLooksPlausible(provider: string, value: string) {
     return true;
 }
 
-export default function AiSettingsModal({ onClose, provider, setProvider, apiKey, setApiKey }: AiSettingsModalProps) {
+export default function AiSettingsModal({ onClose, provider, setProvider, model, setModel, apiKey, setApiKey }: AiSettingsModalProps) {
     const [activeTab, setActiveTab] = useState<'api' | 'prompt'>('api');
     const [draftProvider, setDraftProvider] = useState(provider);
+    const [draftModel, setDraftModel] = useState(() => isModelForProvider(provider, model) ? model : defaultModelFor(provider));
     const [draftApiKey, setDraftApiKey] = useState(apiKey);
     const [planPrompt, setPlanPrompt] = useState(() => localStorage.getItem('custom_plan_prompt') ?? '');
     const [lyricsPrompt, setLyricsPrompt] = useState(() => localStorage.getItem('custom_lyrics_prompt') ?? '');
     const [showApiKey, setShowApiKey] = useState(false);
     const [connection, setConnection] = useState<ConnectionStatus>({ type: 'idle', message: '' });
     const selectedProvider = PROVIDERS.find((item) => item.id === draftProvider) ?? PROVIDERS[0];
+    const providerId = isAiProvider(draftProvider) ? draftProvider : 'gemini';
+    const availableModels = AI_MODELS[providerId];
     const hasKey = draftApiKey.trim().length > 0;
     const plausibleKey = keyLooksPlausible(draftProvider, draftApiKey);
 
     const updateProvider = (nextProvider: string) => {
         setDraftProvider(nextProvider);
+        setDraftModel(defaultModelFor(nextProvider));
         setConnection({ type: 'idle', message: '' });
     };
 
@@ -82,7 +89,7 @@ export default function AiSettingsModal({ onClose, provider, setProvider, apiKey
         try {
             await fetchJson<{ ok: boolean }>('/api/ai-test', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: draftProvider, apiKey: draftApiKey.trim() }),
+                body: JSON.stringify({ provider: draftProvider, model: draftModel, apiKey: draftApiKey.trim() }),
             });
             setConnection({ type: 'success', message: `${selectedProvider.name} 연결에 성공했습니다.` });
         } catch (error: unknown) {
@@ -99,6 +106,7 @@ export default function AiSettingsModal({ onClose, provider, setProvider, apiKey
 
     const handleSave = () => {
         setProvider(draftProvider);
+        setModel(draftModel);
         setApiKey(draftApiKey.trim());
         localStorage.setItem('custom_plan_prompt', planPrompt);
         localStorage.setItem('custom_lyrics_prompt', lyricsPrompt);
@@ -132,6 +140,18 @@ export default function AiSettingsModal({ onClose, provider, setProvider, apiKey
                                             <input type="radio" name="ai-provider" value={item.id} checked={draftProvider === item.id} onChange={() => updateProvider(item.id)} className="sr-only" />
                                             <span className="flex items-start justify-between gap-2"><strong className="text-sm text-slate-900 dark:text-white">{item.name}</strong><span className="rounded-full bg-white px-2 py-1 text-[9px] font-black text-indigo-600 shadow-sm dark:bg-slate-800">{item.badge}</span></span>
                                             <span className="mt-2 block text-xs leading-relaxed text-slate-500">{item.description}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </fieldset>
+
+                            <fieldset>
+                                <legend className="mb-3 text-sm font-bold text-slate-700 dark:text-slate-300">모델을 선택하세요</legend>
+                                <div className="space-y-2">
+                                    {availableModels.map((item) => (
+                                        <label key={item.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${draftModel === item.id ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' : 'border-slate-200 hover:border-slate-300 dark:border-slate-700'}`}>
+                                            <input type="radio" name="ai-model" value={item.id} checked={draftModel === item.id} onChange={() => { setDraftModel(item.id); setConnection({ type: 'idle', message: '' }); }} className="accent-indigo-600" />
+                                            <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><strong className="text-sm text-slate-900 dark:text-white">{item.name}</strong><span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-black text-indigo-600 shadow-sm dark:bg-slate-800">{item.badge}</span></span><span className="mt-1 block text-xs text-slate-500">{item.description}</span></span>
                                         </label>
                                     ))}
                                 </div>
