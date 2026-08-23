@@ -92,7 +92,17 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
 
                 <div className="flex-1 flex flex-col h-full">
                     <div className="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">🎧 {activePlan.title} <span className="text-sm text-indigo-500 font-normal ml-2">- 버전 {safeIndex + 1}</span></h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                            🎧{' '}
+                            <button
+                                onClick={() => void copyWithToast(activePlan.title, '노래 제목이 복사되었습니다.')}
+                                className="rounded text-left transition-colors hover:text-indigo-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:hover:text-indigo-300"
+                                title="노래 제목을 클릭하여 복사"
+                            >
+                                {activePlan.title}
+                            </button>
+                            <span className="text-sm text-indigo-500 font-normal ml-2">- 버전 {safeIndex + 1}</span>
+                        </h3>
                         <div className="flex gap-2">
                             {currentView.usedPrompt && (
                                 <button onClick={() => onOpenPrompt(`${activePlan.title} (버전 ${safeIndex + 1}) 가사 프롬프트`, currentView.usedPrompt!)} className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-2 rounded-lg font-bold transition-colors">

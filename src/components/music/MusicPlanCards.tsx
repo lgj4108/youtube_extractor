@@ -73,7 +73,13 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
 
                     <div className="flex justify-between items-start mb-4 gap-2">
                         <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight break-words flex-1">
-                            {plan.title}
+                            <button
+                                onClick={(e) => void handleCopyTitle(e, plan.title, index)}
+                                className="rounded text-left transition-colors hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:hover:text-indigo-300"
+                                title="노래 제목을 클릭하여 복사"
+                            >
+                                {plan.title}
+                            </button>
                         </h3>
                         <button
                             onClick={(e) => void handleCopyTitle(e, plan.title, index)}
