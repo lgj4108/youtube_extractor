@@ -60,10 +60,15 @@ export async function POST(request: Request) {
 
         [응답 구성]
         - 제목과 설명은 ${langGuide}으로 자연스럽게 작성해.
-        - musicStyle은 Suno의 "Style of Music" 입력란에 그대로 붙여넣을 수 있는 영어 프롬프트로 작성해.
-        - musicStyle에는 가사나 줄거리, 장면 묘사를 섞지 말고 장르/하위 장르, 구체적인 주요 악기, 보컬 성격, 무드와 분위기, 숫자로 된 BPM, 목표 길이(기본 3~5분), 필요한 프로덕션 특징만 간결하게 담아.
-        - 원하지 않는 요소는 사용자가 명시했거나 콘셉트상 꼭 필요한 경우에만 "no ..." 형태로 덧붙이고, 임의의 금지 조건을 만들지 마.
-        - musicStyleKor은 musicStyle의 음악적 의미를 ${fullMainLang}로 간단히 설명해.
+        - musicStyle은 Suno의 "Style of Music" 입력란에 그대로 붙여넣을 수 있는 한 줄짜리 영어 조건 목록으로 작성해. 문장이나 줄거리로 서술하지 마.
+        - 다음 콜론 구조를 유지하고 각 범주 안에서는 쉼표로 조건을 구분해: genre: "..."; vocal: "..."; instrumentation: "..."; style tags: "..."; production: "..."; tempo: "...".
+        - 전체 핵심 조건은 대략 8~15개로 제한하고, 영향력이 큰 조건부터 짧고 명확하게 써. and, with, about 같은 불필요한 연결어를 쓰지 마.
+        - genre에는 넓은 장르명 하나만 쓰지 말고 하위 장르에 질감, 시대감, 연주 방식 중 관련 보정 요소 2~3개를 결합해.
+        - 감정이나 상황을 설명하는 문장 대신 minor key feel, sparse arrangement, soft dynamics처럼 실제로 들리는 사운드 특성으로 변환해.
+        - instrumentation에는 악기 이름만 나열하지 말고 fingerpicking, muted, distorted, dry recording처럼 핵심 악기의 연주법이나 소리 질감을 함께 명시해.
+        - vocal에는 보컬 타입, 음색, 전달 방식, 마이킹 중 곡에 중요한 것만 담고, tempo에는 숫자 BPM과 체감 속도를 담아.
+        - 가사, 장면 묘사, 곡의 줄거리, 목표 재생 시간을 musicStyle에 섞지 마. 원하지 않는 요소도 사용자가 명시한 경우에만 마지막에 exclusions: "..." 범주로 덧붙여.
+        - musicStyleKor은 musicStyle의 음악 설계를 ${fullMainLang}로 간단히 설명해.
         - midjourneyPrompt는 앨범 커버 제작에 쓸 수 있는 영어 시각 프롬프트로 작성해.
         - 파싱을 위해 아래 JSON 구조를 유지해.
         
@@ -72,7 +77,7 @@ export async function POST(request: Request) {
             "plans": [
                 {
                     "title": "(${fullMainLang} 언어) 곡 제목",
-                    "musicStyle": "English Style of Music prompt with genre, instruments, vocal, mood, BPM, duration and production traits",
+                    "musicStyle": "genre: \\"subgenre, era or texture\\"; vocal: \\"voice and delivery\\"; instrumentation: \\"instrument and playing style\\"; style tags: \\"audible qualities\\"; production: \\"recording and dynamics\\"; tempo: \\"numeric BPM, tempo feel\\"",
                     "musicStyleKor": "(${fullMainLang}) 스타일 설명",
                     "midjourneyPrompt": "English album-cover prompt"
                 }
