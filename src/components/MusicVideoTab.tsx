@@ -126,7 +126,7 @@ export default function MusicVideoTab() {
         }
     };
 
-    const handleSaveLyrics = (index: number, sourceVersionIndex: number, lyrics: string) => {
+    const handleSaveLyrics = (index: number, sourceVersionIndex: number, lyrics: string, editMethod: 'manual' | 'ai') => {
         if (!lyrics.trim()) {
             setError('가사는 비워둘 수 없습니다.');
             return;
@@ -138,9 +138,42 @@ export default function MusicVideoTab() {
             const history = plan.history || [];
             const source = history[sourceVersionIndex];
             if (!source || source.lyrics === lyrics) return plan;
-            const editedVersion = { lyrics, editedFromVersion: sourceVersionIndex + 1 };
+            const editedVersion = { lyrics, editedFromVersion: sourceVersionIndex + 1, editMethod };
             return { ...plan, lyrics, history: [...history, editedVersion] };
         }));
+    };
+
+    const handleReviseLyrics = async (index: number, lyrics: string, instruction: string, selectedText: string) => {
+        if (!apiKey) {
+            setIsSettingsOpen(true);
+            return null;
+        }
+
+        const plan = aiPlans[index];
+        if (!plan) return null;
+        setError('');
+
+        try {
+            const data = await fetchJson<{ revisedLyrics?: string }>('/api/music-revise', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: aiProvider,
+                    model: aiModel,
+                    apiKey,
+                    title: plan.title,
+                    musicStyle: plan.musicStyle,
+                    vocalType,
+                    mainLang,
+                    lyrics,
+                    instruction,
+                    selectedText,
+                }),
+            });
+            return data.revisedLyrics || null;
+        } catch (requestError: unknown) {
+            setError(`가사 AI 수정 오류: ${getErrorMessage(requestError)}`);
+            return null;
+        }
     };
 
     return (
@@ -189,6 +222,7 @@ export default function MusicVideoTab() {
                 onGeneratePlans={() => void handleGenerateAiPlans()}
                 onGenerateLyrics={handleGenerateLyrics}
                 onSaveLyrics={handleSaveLyrics}
+                onReviseLyrics={handleReviseLyrics}
             />
         </div>
     );

@@ -9,6 +9,7 @@ export interface LyricsVersion {
     lyrics: string;
     usedPrompt?: string;
     editedFromVersion?: number;
+    editMethod?: 'manual' | 'ai';
 }
 
 export interface MusicAiPlan {
@@ -34,13 +35,14 @@ interface MusicAiResultProps {
     subLangs: string[]; setSubLangs: (val: string[]) => void;
     onGeneratePlans: () => void;
     onGenerateLyrics: (index: number, title: string, musicStyle: string) => void;
-    onSaveLyrics: (index: number, sourceVersionIndex: number, lyrics: string) => void;
+    onSaveLyrics: (index: number, sourceVersionIndex: number, lyrics: string, editMethod: 'manual' | 'ai') => void;
+    onReviseLyrics: (index: number, lyrics: string, instruction: string, selectedText: string) => Promise<string | null>;
 }
 
 export default function MusicAiResult({
                                           aiPlans, isGeneratingPlans, inferredTheme, planPrompt,
                                           genre, setGenre, vocalType, setVocalType, mainLang, setMainLang, subLangs, setSubLangs,
-                                          onGeneratePlans, onGenerateLyrics, onSaveLyrics
+                                          onGeneratePlans, onGenerateLyrics, onSaveLyrics, onReviseLyrics
                                       }: MusicAiResultProps) {
 
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(null);
@@ -138,7 +140,8 @@ export default function MusicAiResult({
                     activePlan={activePlan}
                     showToast={showToast}
                     onOpenPrompt={openPromptViewer}
-                    onSaveLyrics={(sourceVersionIndex, lyrics) => onSaveLyrics(activeDetailIndex, sourceVersionIndex, lyrics)}
+                    onSaveLyrics={(sourceVersionIndex, lyrics, editMethod) => onSaveLyrics(activeDetailIndex, sourceVersionIndex, lyrics, editMethod)}
+                    onReviseLyrics={(lyrics, instruction, selectedText) => onReviseLyrics(activeDetailIndex, lyrics, instruction, selectedText)}
                 />
             )}
         </div>
