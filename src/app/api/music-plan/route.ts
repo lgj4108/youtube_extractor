@@ -60,8 +60,10 @@ export async function POST(request: Request) {
 
         [응답 구성]
         - 제목과 설명은 ${langGuide}으로 자연스럽게 작성해.
-        - musicStyle은 Suno/Udio에서 활용하기 쉬운 영어 태그 4~8개로 장르, 에너지, 주요 악기, 보컬, 무드 중 관련 요소를 담아.
-        - musicStyleKor은 스타일의 의미를 ${fullMainLang}로 간단히 설명해.
+        - musicStyle은 Suno의 "Style of Music" 입력란에 그대로 붙여넣을 수 있는 영어 프롬프트로 작성해.
+        - musicStyle에는 가사나 줄거리, 장면 묘사를 섞지 말고 장르/하위 장르, 구체적인 주요 악기, 보컬 성격, 무드와 분위기, 숫자로 된 BPM, 목표 길이(기본 3~5분), 필요한 프로덕션 특징만 간결하게 담아.
+        - 원하지 않는 요소는 사용자가 명시했거나 콘셉트상 꼭 필요한 경우에만 "no ..." 형태로 덧붙이고, 임의의 금지 조건을 만들지 마.
+        - musicStyleKor은 musicStyle의 음악적 의미를 ${fullMainLang}로 간단히 설명해.
         - midjourneyPrompt는 앨범 커버 제작에 쓸 수 있는 영어 시각 프롬프트로 작성해.
         - 파싱을 위해 아래 JSON 구조를 유지해.
         
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
             "plans": [
                 {
                     "title": "(${fullMainLang} 언어) 곡 제목",
-                    "musicStyle": "English style tags separated by commas",
+                    "musicStyle": "English Style of Music prompt with genre, instruments, vocal, mood, BPM, duration and production traits",
                     "musicStyleKor": "(${fullMainLang}) 스타일 설명",
                     "midjourneyPrompt": "English album-cover prompt"
                 }

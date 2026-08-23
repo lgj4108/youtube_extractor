@@ -51,13 +51,13 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
 
                     <div className="mb-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 p-3">
                         <div className="flex justify-between items-center mb-2">
-                            <p className="text-[10px] font-bold text-indigo-500">🎸 음악 스타일 (Suno/Udio)</p>
-                            <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(plan.musicStyle); showToast(`트랙 ${index + 1}의 영문 스타일 태그가 복사되었습니다.`); }} className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:hover:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded transition-colors font-bold">
-                                영문 복사
+                            <p className="text-[10px] font-bold text-indigo-500">🎸 Suno Style of Music</p>
+                            <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(plan.musicStyle); showToast(`트랙 ${index + 1}의 Suno 스타일 프롬프트가 복사되었습니다.`); }} className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:hover:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded transition-colors font-bold">
+                                스타일 복사
                             </button>
                         </div>
                         {plan.musicStyleKor && <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 leading-relaxed">🇰🇷 {plan.musicStyleKor}</p>}
-                        <p onClick={() => { navigator.clipboard.writeText(plan.musicStyle); showToast(`트랙 ${index + 1}의 영문 스타일 태그가 복사되었습니다.`); }} className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="클릭하여 영문 태그 복사">
+                        <p onClick={() => { navigator.clipboard.writeText(plan.musicStyle); showToast(`트랙 ${index + 1}의 Suno 스타일 프롬프트가 복사되었습니다.`); }} className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="Suno의 Style of Music 입력란에 붙여넣기">
                             {plan.musicStyle}
                         </p>
                     </div>
