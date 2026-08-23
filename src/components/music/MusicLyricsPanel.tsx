@@ -28,6 +28,28 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
 
     if (!currentView) return null;
 
+    const downloadPackage = () => {
+        const content = [
+            `# ${activePlan.title}`,
+            '',
+            '## Music style',
+            activePlan.musicStyle,
+            '',
+            '## Lyrics',
+            currentView.lyrics,
+            '',
+            '## Scene prompts',
+            ...(currentView.scenePrompts || []).map((scene, index) => `${index + 1}. ${scene}`),
+        ].join('\n');
+        const url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }));
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${activePlan.title.replace(/[\\/:*?"<>|]/g, '_') || 'music-plan'}.md`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        showToast('가사와 스타일, 씬 프롬프트를 파일로 저장했습니다.');
+    };
+
     return (
         <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn flex flex-col h-full">
 
@@ -59,6 +81,9 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                             )}
                             <button onClick={() => {navigator.clipboard.writeText(currentView.lyrics); showToast(`버전 ${safeIndex + 1} 가사가 복사되었습니다.`);}} className="text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/50 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg font-bold transition-colors">
                                 📋 현재 가사 복사
+                            </button>
+                            <button onClick={downloadPackage} className="rounded-lg bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
+                                ↓ 결과 묶음 저장
                             </button>
                         </div>
                     </div>

@@ -6,26 +6,30 @@ import MusicAiResult, { MusicAiPlan } from './music/MusicAiResult';
 import AiSettingsModal from './planner/AiSettingsModal';
 import { fetchJson } from '@/lib/http';
 import { getErrorMessage } from '@/lib/errors';
-import { useStoredString } from '@/lib/storage';
+import { useStoredJson, useStoredString } from '@/lib/storage';
+
+const DEFAULT_GENRES = ['K-POP'];
+const EMPTY_LANGUAGES: string[] = [];
+const EMPTY_MUSIC_PLANS: MusicAiPlan[] = [];
 
 export default function MusicVideoTab() {
-    const [keyword, setKeyword] = useState<string>('');
-    const [region, setRegion] = useState<string>('KR');
+    const [keyword, setKeyword] = useStoredString('music_keyword', '');
+    const [region, setRegion] = useStoredString('music_region', 'KR');
 
-    const [genre, setGenre] = useState<string[]>(['K-POP']);
-    const [vocalType, setVocalType] = useState<string>('Auto');
-    const [mainLang, setMainLang] = useState<string>('KR');
-    const [subLangs, setSubLangs] = useState<string[]>([]);
+    const [genre, setGenre] = useStoredJson<string[]>('music_genres', DEFAULT_GENRES);
+    const [vocalType, setVocalType] = useStoredString('music_vocal_type', 'Auto');
+    const [mainLang, setMainLang] = useStoredString('music_main_language', 'KR');
+    const [subLangs, setSubLangs] = useStoredJson<string[]>('music_sub_languages', EMPTY_LANGUAGES);
 
     const [videos, setVideos] = useState<YouTubeVideo[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
 
-    const [aiPlans, setAiPlans] = useState<MusicAiPlan[]>([]);
+    const [aiPlans, setAiPlans] = useStoredJson<MusicAiPlan[]>('music_ai_plans', EMPTY_MUSIC_PLANS);
     const [isGeneratingPlans, setIsGeneratingPlans] = useState<boolean>(false);
-    const [inferredTheme, setInferredTheme] = useState<string>('');
+    const [inferredTheme, setInferredTheme] = useStoredString('music_inferred_theme', '');
 
-    const [planPrompt, setPlanPrompt] = useState<string>('');
+    const [planPrompt, setPlanPrompt] = useStoredString('music_plan_prompt', '');
 
     const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
     const [aiProvider, setAiProvider] = useStoredString('ai_provider', 'gemini');
@@ -42,13 +46,14 @@ export default function MusicVideoTab() {
     const handleFetchYoutube = async () => {
         if (!keyword.trim()) return;
 
-        setLoading(true); setError(''); setAiPlans([]); setInferredTheme(''); setPlanPrompt(''); setVideos([]);
+        setLoading(true); setError('');
         try {
             const data = await fetchJson<{ rawData?: YouTubeVideo[] }>('/api/planner', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ keyword, period: 'month', duration: 'any', region, categoryId: '10' }),
             });
             setVideos(data.rawData || []);
+            setAiPlans([]); setInferredTheme(''); setPlanPrompt('');
         } catch (requestError: unknown) {
             setError(getErrorMessage(requestError, '검색 중 오류가 발생했습니다.'));
         } finally {
@@ -62,7 +67,7 @@ export default function MusicVideoTab() {
             return;
         }
         if (!apiKey) { setIsSettingsOpen(true); return; }
-        setIsGeneratingPlans(true); setAiPlans([]); setPlanPrompt(''); setError('');
+        setIsGeneratingPlans(true); setError('');
 
         const customPrompt = localStorage.getItem('custom_plan_prompt') || '';
 

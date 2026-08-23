@@ -8,9 +8,10 @@ import AiSettingsModal from './planner/AiSettingsModal';
 import PromptEditor from './planner/PromptEditor';
 import { copyText, fetchJson } from '@/lib/http';
 import { getErrorMessage } from '@/lib/errors';
-import { useStoredJson, useStoredString } from '@/lib/storage';
+import { useStoredJson, useStoredString, writeStoredString } from '@/lib/storage';
 
 const EMPTY_SAVED_VIDEOS: YouTubeVideo[] = [];
+const EMPTY_SEARCH_VIDEOS: YouTubeVideo[] = [];
 
 interface AiPlan {
     title: string;
@@ -21,12 +22,14 @@ interface AiPlan {
     isGeneratingLong?: boolean;
 }
 
+const EMPTY_AI_PLANS: AiPlan[] = [];
+
 export default function PlannerTab() {
-    const [keyword, setKeyword] = useState<string>('');
-    const [period, setPeriod] = useState<string>('month');
-    const [duration, setDuration] = useState<string>('any');
-    const [region, setRegion] = useState<string>('KR');
-    const [videos, setVideos] = useState<YouTubeVideo[]>([]);
+    const [keyword, setKeyword] = useStoredString('planner_keyword', '');
+    const [period, setPeriod] = useStoredString('planner_period', 'month');
+    const [duration, setDuration] = useStoredString('planner_duration', 'any');
+    const [region, setRegion] = useStoredString('planner_region', 'KR');
+    const [videos, setVideos] = useStoredJson<YouTubeVideo[]>('planner_search_results', EMPTY_SEARCH_VIDEOS);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [savedVideos, setSavedVideos] = useStoredJson<YouTubeVideo[]>('yt_scraped_videos', EMPTY_SAVED_VIDEOS);
@@ -35,12 +38,12 @@ export default function PlannerTab() {
     const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
     const [aiProvider, setAiProvider] = useStoredString('ai_provider', 'gemini');
     const [apiKey, setApiKey] = useStoredString('ai_api_key', '');
-    const [aiPlans, setAiPlans] = useState<AiPlan[]>([]);
+    const [aiPlans, setAiPlans] = useStoredJson<AiPlan[]>('planner_ai_plans', EMPTY_AI_PLANS);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [aiError, setAiError] = useState<string>('');
 
-    const [concept, setConcept] = useState<string>('');
-    const [inferredTheme, setInferredTheme] = useState<string>('');
+    const [concept, setConcept] = useStoredString('planner_concept', '');
+    const [inferredTheme, setInferredTheme] = useStoredString('planner_inferred_theme', '');
 
     const [viewingScript, setViewingScript] = useState<{title: string, script: string, format: string} | null>(null);
 
@@ -66,20 +69,22 @@ export default function PlannerTab() {
     const handleFetchYoutube = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!keyword.trim()) return;
-        setLoading(true); setError(''); setAiError(''); setVideos([]); setAiPlans([]); setInferredTheme(''); setViewMode('search');
+        setLoading(true); setError(''); setAiError(''); setViewMode('search');
         try {
             const data = await fetchJson<{ rawData?: YouTubeVideo[] }>('/api/planner', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ keyword, period, duration, region }),
             });
             setVideos(data.rawData || []);
+            setAiPlans([]);
+            setInferredTheme('');
         } catch (error: unknown) { setError(getErrorMessage(error, '검색 중 오류가 발생했습니다.')); } finally { setLoading(false); }
     };
 
     const handleGenerateAiPlans = async () => {
         if (!apiKey) { setIsSettingsOpen(true); return; }
         if (currentDisplayData.length === 0) { setAiError('기획에 사용할 영상을 먼저 검색하거나 스크랩해주세요.'); return; }
-        setIsGenerating(true); setAiError(''); setAiPlans([]); setInferredTheme('');
+        setIsGenerating(true); setAiError('');
         try {
             const data = await fetchJson<{ plans?: AiPlan[]; inferredTheme?: string }>('/api/generate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -113,6 +118,11 @@ export default function PlannerTab() {
             setAiError(`대본 생성 실패: ${getErrorMessage(error)}`);
             setAiPlans(prev => prev.map((plan, i) => i === index ? { ...plan, [loadingKey]: false } : plan));
         }
+    };
+
+    const handleSendToMusic = (title: string) => {
+        writeStoredString('music_keyword', title);
+        writeStoredString('creator_active_tab', 'music');
     };
 
     const effectiveViewMode = viewMode === 'search' && videos.length === 0 && savedVideos.length > 0 ? 'saved' : viewMode;
@@ -180,6 +190,13 @@ export default function PlannerTab() {
                                         </div>
 
                                         <div className="mt-auto flex flex-col gap-2">
+
+                                            <button
+                                                onClick={() => handleSendToMusic(plan.title)}
+                                                className="w-full rounded-lg border border-purple-200 bg-purple-50 py-2 text-xs font-bold text-purple-700 transition-colors hover:bg-purple-100 dark:border-purple-900 dark:bg-purple-950/40 dark:text-purple-300"
+                                            >
+                                                🎵 이 주제로 음악 만들기
+                                            </button>
 
                                             {/* 숏츠 컨트롤 영역 */}
                                             <div className="flex gap-2 w-full">

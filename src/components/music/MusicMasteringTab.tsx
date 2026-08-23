@@ -17,8 +17,11 @@ import {
     updateMasteringGraph,
 } from '@/lib/audio/mastering';
 import { getErrorMessage } from '@/lib/errors';
+import { useStoredJson, useStoredString } from '@/lib/storage';
 
 const MAX_AUDIO_SIZE = 250 * 1024 * 1024;
+const INITIAL_MASTERING_SETTINGS = cloneSettings(DEFAULT_MASTERING_SETTINGS);
+const EMPTY_CUSTOM_PRESET: MasteringSettings | null = null;
 type ScalarSettingKey = Exclude<keyof MasteringSettings, 'eq'>;
 
 interface SliderProps {
@@ -75,8 +78,10 @@ function getAudioContext() {
 export default function MusicMasteringTab() {
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [audioStats, setAudioStats] = useState<ReturnType<typeof analyzeAudioBuffer> | null>(null);
-    const [settings, setSettings] = useState<MasteringSettings>(() => cloneSettings(DEFAULT_MASTERING_SETTINGS));
-    const [activePreset, setActivePreset] = useState<PresetKey | 'CUSTOM'>('CLEAN');
+    const [settings, setSettings] = useStoredJson<MasteringSettings>('mastering_settings', INITIAL_MASTERING_SETTINGS);
+    const [activePreset, setActivePreset] = useStoredJson<PresetKey | 'CUSTOM'>('mastering_active_preset', 'CLEAN');
+    const [customPreset, setCustomPreset] = useStoredJson<MasteringSettings | null>('mastering_custom_preset', EMPTY_CUSTOM_PRESET);
+    const [masteringMode, setMasteringMode] = useStoredString('mastering_mode', 'basic');
     const [isBypassed, setIsBypassed] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -368,9 +373,18 @@ export default function MusicMasteringTab() {
                             </button>
                         ))}
                     </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <button type="button" onClick={() => { setCustomPreset(cloneSettings(settings)); showNotice('현재 값을 내 프리셋으로 저장했습니다.'); }} className="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300">현재 설정 저장</button>
+                        <button type="button" disabled={!customPreset} onClick={() => { if (customPreset) { setSettings(cloneSettings(customPreset)); setActivePreset('CUSTOM'); } }} className="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-600 hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-300">내 프리셋 불러오기</button>
+                    </div>
                 </section>
 
-                <div className="grid gap-6 lg:grid-cols-[0.9fr_1.6fr]">
+                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                    <div><p className="text-sm font-extrabold text-slate-900 dark:text-white">세부 음향 조정</p><p className="mt-1 text-xs text-slate-400">처음에는 프리셋만으로 충분합니다. 필요한 경우 전문가 설정을 여세요.</p></div>
+                    <button type="button" onClick={() => setMasteringMode(masteringMode === 'expert' ? 'basic' : 'expert')} aria-expanded={masteringMode === 'expert'} className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{masteringMode === 'expert' ? '간단히 보기' : '전문가 설정'}</button>
+                </div>
+
+                {masteringMode === 'expert' && <div className="grid gap-6 animate-fadeIn lg:grid-cols-[0.9fr_1.6fr]">
                     <section className="space-y-3" aria-labelledby="dynamics-title">
                         <h3 id="dynamics-title" className="px-1 text-sm font-extrabold text-slate-900 dark:text-white">다이나믹스 & 이미지</h3>
                         <MasteringSlider label="Compression" description="피크를 정돈하고 평균 밀도를 높입니다." min={0} max={100} value={settings.compression} onChange={(value) => updateSetting('compression', value)} />
@@ -403,7 +417,7 @@ export default function MusicMasteringTab() {
                             })}
                         </div>
                     </section>
-                </div>
+                </div>}
 
                 <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900/60 dark:bg-emerald-950/30">
                     <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">

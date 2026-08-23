@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { YoutubeTranscript } from 'youtube-transcript';
-import { errorResponse, readJsonObject, requiredString, RequestError } from '@/lib/server/api';
+import { errorResponse, optionalString, readJsonObject, requiredString, RequestError } from '@/lib/server/api';
 
 function getYouTubeId(input: string): string | null {
     if (/^[\w-]{11}$/.test(input)) return input;
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     try {
         const body = await readJsonObject(request);
         const url = requiredString(body, 'url', '유튜브 URL을 입력해주세요.');
+        const language = optionalString(body, 'language', 'auto');
         const videoId = getYouTubeId(url);
         if (!videoId || !/^[\w-]{11}$/.test(videoId)) {
             throw new RequestError('올바른 유튜브 영상 URL이 아닙니다.');
@@ -41,15 +42,22 @@ export async function POST(request: Request) {
 
         let transcript;
         try {
-            transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'ko' });
+            transcript = language === 'auto'
+                ? await YoutubeTranscript.fetchTranscript(videoId)
+                : await YoutubeTranscript.fetchTranscript(videoId, { lang: language });
         } catch {
             transcript = await YoutubeTranscript.fetchTranscript(videoId);
         }
 
-        const text = decodeEntities(transcript.map((item) => item.text).join(' '));
+        const segments = transcript.map((item) => ({
+            duration: Number(item.duration) || 0,
+            offset: Number(item.offset) || 0,
+            text: decodeEntities(item.text),
+        })).filter((item) => item.text);
+        const text = decodeEntities(segments.map((item) => item.text).join(' '));
         if (!text) throw new RequestError('이 영상에서 사용할 수 있는 자막을 찾지 못했습니다.', 404);
 
-        return NextResponse.json({ text });
+        return NextResponse.json({ text, segments });
     } catch (error: unknown) {
         return errorResponse(error, '자막을 가져오지 못했습니다. 자막이 공개된 영상인지 확인해주세요.', 'Transcript API');
     }

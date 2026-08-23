@@ -31,30 +31,32 @@ export async function POST(request: Request) {
         });
 
         const conceptInstruction = concept
-            ? `사용자가 요구한 핵심 기획 방향은 다음과 같다: [${concept}]`
-            : `제공된 유튜브 데이터의 핵심 키워드, 타겟 시청자층, 트렌드를 스스로 분석하여 가장 조회수가 잘 나올 수 있는 최적의 기획 주제와 방향성을 자동 설정해라.`;
+            ? `사용자가 원하는 방향: ${concept}`
+            : `데이터에서 반복되는 관심사와 시청자 반응을 찾아 방향을 제안해.`;
 
         const autoPromptInstruction = `
-너는 현존하는 최고의 유튜브 콘텐츠 기획자이자 프롬프트 엔지니어다. 차갑고 이성적인 접근보다는, 사람의 마음에 깊이 공감하고 위로를 주는 따뜻한 감성을 기획에 녹여내는 것에 탁월하다.
+너는 사용자의 의도와 실제 시청자 반응을 함께 고려하는 유튜브 콘텐츠 기획자다.
 ${conceptInstruction}
 
-[너의 임무]
-1. 제공된 유튜브 데이터를 분석하여 시청자들이 열광하는 포인트를 찾아라.
-2. 트렌드에 부합하는 새로운 영상 기획안 3개를 도출해라.
-3. 100% 한글로 작성하고 특수기호나 외국어 혼용을 금지한다.
+[기획 원칙]
+- 사용자가 방향을 입력했다면 데이터보다 우선해 반영해.
+- 참고 영상의 제목을 베끼지 말고 반응 포인트를 새로운 각도로 확장해.
+- 감성, 정보, 유머 등 소재에 어울리는 톤을 자유롭게 선택해. 모든 주제를 위로나 다큐멘터리 톤으로 만들 필요는 없어.
+- 제목과 설명은 자연스러운 한국어를 중심으로 쓰되 통용되는 고유명사와 외래어는 허용해.
+- 서로 차별화된 영상 기획안 3개를 제안해.
 
-반드시 아래 JSON 객체(Object) 구조로만 응답해라. 다른 설명 없이 오직 JSON만 반환해:
+애플리케이션에서 처리할 수 있도록 아래 JSON 구조로 응답해:
 {
-  "inferredTheme": "AI가 데이터에서 도출한 핵심 기획 주제 및 타겟 (1~2줄로 명확히 요약)",
+  "inferredTheme": "핵심 기획 방향과 예상 시청자",
   "plans": [
     {
-      "title": "클릭을 유도하는 직관적인 한글 제목",
-      "midjourneyPrompt": "A highly detailed illustration of (주제 영문 번역), English prompt"
+      "title": "영상 제목",
+      "midjourneyPrompt": "English thumbnail image prompt"
     }
   ]
 }`;
 
-        const userPrompt = `[수집된 유튜브 데이터]\n${JSON.stringify(compressedData)}\n\n기획안을 지정된 JSON 객체 포맷으로 반환해.`;
+        const userPrompt = `[수집된 유튜브 데이터]\n${JSON.stringify(compressedData)}\n\n위 맥락을 참고해 독창적인 기획안을 작성해.`;
 
         const { text } = await generateText({
             model,

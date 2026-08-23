@@ -1,11 +1,20 @@
 'use client';
 
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { type SetStateAction, useCallback, useMemo, useSyncExternalStore } from 'react';
 
 const STORAGE_EVENT = 'creator-studio-storage';
 
 function emitStorageChange(key: string) {
     window.dispatchEvent(new CustomEvent(STORAGE_EVENT, { detail: key }));
+}
+
+export function writeStoredString(key: string, value: string) {
+    window.localStorage.setItem(key, value);
+    emitStorageChange(key);
+}
+
+export function writeStoredJson<T>(key: string, value: T) {
+    writeStoredString(key, JSON.stringify(value));
 }
 
 function subscribe(key: string, onStoreChange: () => void) {
@@ -32,8 +41,7 @@ export function useStoredString(key: string, fallback: string) {
     );
 
     const setValue = useCallback((nextValue: string) => {
-        window.localStorage.setItem(key, nextValue);
-        emitStorageChange(key);
+        writeStoredString(key, nextValue);
     }, [key]);
 
     return [value, setValue] as const;
@@ -51,9 +59,12 @@ export function useStoredJson<T>(key: string, fallback: T) {
         }
     }, [fallback, rawValue]);
 
-    const setValue = useCallback((nextValue: T) => {
-        setRawValue(JSON.stringify(nextValue));
-    }, [setRawValue]);
+    const setValue = useCallback((nextValue: SetStateAction<T>) => {
+        const resolvedValue = typeof nextValue === 'function'
+            ? (nextValue as (current: T) => T)(value)
+            : nextValue;
+        setRawValue(JSON.stringify(resolvedValue));
+    }, [setRawValue, value]);
 
     return [value, setValue] as const;
 }

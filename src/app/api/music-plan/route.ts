@@ -36,21 +36,17 @@ export async function POST(request: Request) {
         const fullSubLangs = subLangs.map((l: string) => langMap[l] || l);
 
         const langGuide = fullSubLangs.length > 0
-            ? `${fullMainLang} main with trendy mix of ${fullSubLangs.join(', ')}`
-            : `strictly in ${fullMainLang} language`;
+            ? `${fullMainLang} 중심, 필요하면 ${fullSubLangs.join(', ')} 혼용`
+            : `${fullMainLang} 중심`;
 
         const roleAndCustom = customPrompt.trim() !== ''
             ? `[디렉터(사용자)의 특별 연출 지시사항]\n${customPrompt}`
-            : `너는 트렌드를 선도하는 글로벌 K-Pop/힙합 프로듀서야.`;
-
-        const noHanjaRule = fullMainLang === 'Korean'
-            ? '절대로 한자(Chinese characters)를 섞어 쓰지 말고 오직 순수 한글로만 작성해라.'
-            : '';
+            : `너는 사용자의 아이디어를 다양한 음악 방향으로 확장하는 프로듀서다.`;
 
         const prompt = `
         ${roleAndCustom}
 
-        [시스템 제공 데이터 및 필수 반영 변수]
+        [사용자 입력과 참고 정보]
         - 사용자가 직접 입력한 핵심 창작 키워드: ${creativeKeyword || '자유 주제'}
         - 타겟 음악 장르: ${genre}
         - 타겟 보컬 타입: ${vocalGuide}
@@ -58,29 +54,25 @@ export async function POST(request: Request) {
         - 출력 언어 설정: **${fullMainLang}**
         - 유튜브 인기 트렌드 참고 데이터(없으면 무시): ${JSON.stringify(compressedData)}
         
-        사용자의 핵심 창작 키워드를 가장 중요한 기준으로 삼아 새로운 창작 곡 컨셉 3가지를 기획해 줘.
-        유튜브 참고 데이터가 있으면 키워드의 의도를 해치지 않는 범위에서만 보조 자료로 활용하고, 데이터가 없어도 완성도 높은 기획안을 만들어라.
-        
-        [⚠️ 기획 시 특별 금지/주의사항]
-        유튜브 데이터에 '조선힙합' 같은 전통적 키워드가 있더라도 '해금', '가야금', '한복', '조선' 같은 1차원적인 국악/사극 단어를 제목이나 기획안 텍스트에 절대 직접 쓰지 마라.
-        동양적인 선율은 'musicStyle' 태그에만 영어로 반영하고, 전체적인 분위기는 철저하게 현대적이고 세련된 요즘 힙합 감성으로 트렌디하게 풀어내라.
-        이전에 했던 내용은 배제하고 풀어내라.
-        
-        [⚠️ 절대 변경 불가: 시스템 필수 조건 및 언어 강제 규칙]
-        0. 출력 언어: 'musicStyle'과 'midjourneyPrompt' 항목을 제외한 모든 내용(inferredTheme, title, musicStyleKor)은 반드시 ${fullMainLang} 언어로만 작성해라. ${noHanjaRule}
-        1. 'musicStyle' 항목: Suno(수노) 최적화 스타일 태그. 쉼표(,)로 구분된 4~7개의 구조화된 영문 키워드 조합으로만 작성해라. 반드시 다음 6가지 요소를 순서대로 포함시켜라: [Genre & Subgenre], [Tempo/Energy], [Key instruments], [Vocal style], [Production quality], [Mood]. (주의: "120 bpm" 같은 정확한 수치나 유명 아티스트 이름은 절대 사용 금지. 대신 "fast-tempo", "high-energy" 등으로 표현할 것.)
-        2. 'midjourneyPrompt' 항목: 앨범 커버용 미드저니 프롬프트(영어, 끝에 '--ar 16:9' 필수).
-        3. 'musicStyleKor' 항목: 'musicStyle'에 적은 영어 6가지 태그 요소를 반드시 ${fullMainLang} 언어로 번역해서 적을 것.
-        4. 오직 아래의 JSON 객체 형식으로만 응답하고, 마크다운이나 인사말, 다른 설명은 절대 일체 금지.
+        사용자의 핵심 키워드와 특별 지시를 최우선으로 존중해 서로 결이 다른 곡 콘셉트 3가지를 제안해 줘.
+        유튜브 데이터는 있을 때만 아이디어를 넓히는 참고 자료로 사용하고 그대로 모방하지 마.
+        장르에 전통, 실험, 시대적 소재가 포함되면 임의로 배제하지 말고 사용자의 의도에 맞게 해석해.
+
+        [응답 구성]
+        - 제목과 설명은 ${langGuide}으로 자연스럽게 작성해.
+        - musicStyle은 Suno/Udio에서 활용하기 쉬운 영어 태그 4~8개로 장르, 에너지, 주요 악기, 보컬, 무드 중 관련 요소를 담아.
+        - musicStyleKor은 스타일의 의미를 ${fullMainLang}로 간단히 설명해.
+        - midjourneyPrompt는 앨범 커버 제작에 쓸 수 있는 영어 시각 프롬프트로 작성해.
+        - 파싱을 위해 아래 JSON 구조를 유지해.
         
         {
             "inferredTheme": "(${fullMainLang} 언어) 핵심 음악 트렌드",
             "plans": [
                 {
                     "title": "(${fullMainLang} 언어) 곡 제목",
-                    "musicStyle": "(English) [Genre], [Tempo/Energy], [Instruments], [Vocal], [Production], [Mood] 순서의 영문 태그",
-                    "musicStyleKor": "(${fullMainLang} 언어) 위 영어 스타일 태그 6가지 요소의 한글 번역",
-                    "midjourneyPrompt": "(English) 앨범 커버 프롬프트 (--ar 16:9 필수)"
+                    "musicStyle": "English style tags separated by commas",
+                    "musicStyleKor": "(${fullMainLang}) 스타일 설명",
+                    "midjourneyPrompt": "English album-cover prompt"
                 }
             ]
         }
@@ -88,7 +80,7 @@ export async function POST(request: Request) {
 
         const { text } = await generateText({
             model: aiModel,
-            system: `You are a strict JSON generator. You must respond ONLY with valid JSON. All general fields MUST be in ${fullMainLang}. If ${fullMainLang} is Korean, DO NOT USE ANY Chinese characters (Hanja). Use pure Hangul only. Always include a tempo descriptor in musicStyle. Do not add any conversational text before or after the JSON.`,
+            system: `Create original music concepts from the user's intent. Return valid JSON matching the requested schema so the application can parse it. Prefer ${fullMainLang} for general fields while allowing natural genre terms and loanwords.`,
             prompt: prompt,
             temperature: 0.8
         });
