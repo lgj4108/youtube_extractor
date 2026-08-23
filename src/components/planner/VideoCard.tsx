@@ -11,6 +11,9 @@ interface VideoCardProps {
 
 export default function VideoCard({ video, index, isSaved, onToggleSave }: VideoCardProps) {
     const formatNumber = (numStr: string) => Intl.NumberFormat('ko-KR').format(Number(numStr));
+    const publishedDate = video.publishedAt
+        ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(video.publishedAt))
+        : '날짜 미상';
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-all flex flex-col sm:flex-row relative">
@@ -20,6 +23,7 @@ export default function VideoCard({ video, index, isSaved, onToggleSave }: Video
                 onClick={() => onToggleSave(video)}
                 className="absolute top-3 right-3 z-20 text-xl drop-shadow-md hover:scale-110 transition-transform"
                 title={isSaved ? "스크랩 취소" : "기획 레퍼런스 스크랩"}
+                aria-label={isSaved ? '스크랩 취소' : '기획 레퍼런스로 스크랩'}
             >
                 {isSaved ? '⭐️' : '☆'}
             </button>
@@ -45,6 +49,7 @@ export default function VideoCard({ video, index, isSaved, onToggleSave }: Video
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-2">
                     <span className="font-semibold text-slate-700 dark:text-slate-300">📺 {video.channelTitle}</span>
                     <span>👁️ {formatNumber(video.viewCount)}</span>
+                    <span>📅 {publishedDate}</span>
                     <span className="text-indigo-500 font-semibold">🔥 반응률 {video.engagementRate.toFixed(1)}%</span>
                 </div>
 
@@ -63,9 +68,11 @@ export default function VideoCard({ video, index, isSaved, onToggleSave }: Video
                         💬 시청자 반응 보기 <span className="group-open:rotate-180 transition-transform duration-200">▼</span>
                     </summary>
                     <ul className="mt-2 space-y-1.5 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        {video.topComments.map((comment, i) => (
-                            <li key={i} className="text-xs text-slate-700 dark:text-slate-300 leading-snug line-clamp-2" dangerouslySetInnerHTML={{ __html: `"${comment}"` }} />
-                        ))}
+                        {video.topComments.length > 0
+                            ? video.topComments.map((comment, i) => (
+                                <li key={`${video.videoId}-comment-${i}`} className="text-xs text-slate-700 dark:text-slate-300 leading-snug line-clamp-2">“{comment}”</li>
+                            ))
+                            : <li className="text-xs text-slate-400">공개된 상위 댓글이 없습니다.</li>}
                     </ul>
                 </details>
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent } from 'react';
+import { useTrendKeywords } from '@/hooks/useTrendKeywords';
 
 interface MusicSearchFormProps {
     keyword: string; setKeyword: (val: string) => void;
@@ -10,38 +11,7 @@ interface MusicSearchFormProps {
 }
 
 export default function MusicSearchForm({ keyword, setKeyword, region, setRegion, onSubmit, loading }: MusicSearchFormProps) {
-    const [recommendedWords, setRecommendedWords] = useState<string[]>([]);
-    const [displayWords, setDisplayWords] = useState<string[]>([]);
-    const [trendLoading, setTrendLoading] = useState<boolean>(true);
-    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-
-    useEffect(() => {
-        const fetchTrends = async () => {
-            try {
-                const response = await fetch('/api/trends?categoryId=10');
-                const data = await response.json();
-                if (data.keywords && data.keywords.length > 0) {
-                    setRecommendedWords(data.keywords);
-                    setDisplayWords(data.keywords.slice(0, 6));
-                }
-            } catch (error) {
-                console.error('트렌드 키워드 에러', error);
-            } finally {
-                setTrendLoading(false);
-            }
-        };
-        fetchTrends();
-    }, []);
-
-    const handleRefresh = () => {
-        if (recommendedWords.length === 0) return;
-        setIsRefreshing(true);
-        setTimeout(() => {
-            const shuffled = [...recommendedWords].sort(() => 0.5 - Math.random());
-            setDisplayWords(shuffled.slice(0, 6));
-            setIsRefreshing(false);
-        }, 300);
-    };
+    const { displayWords, hasKeywords, isLoading: trendLoading, refresh } = useTrendKeywords('10');
 
     return (
         <div className="mb-6">
@@ -63,16 +33,18 @@ export default function MusicSearchForm({ keyword, setKeyword, region, setRegion
 
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className="text-sm font-semibold text-slate-500 mr-1">🔥 실시간 추천 키워드:</span>
-                    {!trendLoading && (
-                        <button type="button" onClick={handleRefresh} disabled={isRefreshing} className="p-1 text-slate-400 hover:text-indigo-500 transition-colors">
-                            <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-indigo-500' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    {!trendLoading && hasKeywords && (
+                        <button type="button" onClick={refresh} className="p-1 text-slate-400 hover:text-indigo-500 transition-colors" aria-label="추천 키워드 섞기">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         </button>
                     )}
-                    {displayWords.map((word, idx) => (
-                        <button key={idx} type="button" onClick={() => setKeyword(word)} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 text-xs font-bold rounded-lg border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 transition-colors">
-                            {word}
-                        </button>
-                    ))}
+                    {trendLoading
+                        ? <span className="text-xs text-slate-400 animate-pulse">분석 중...</span>
+                        : displayWords.map((word) => (
+                            <button key={word} type="button" onClick={() => setKeyword(word)} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 text-xs font-bold rounded-lg border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 transition-colors">
+                                {word}
+                            </button>
+                        ))}
                 </div>
             </form>
         </div>

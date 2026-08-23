@@ -1,36 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createAiModel, parseJsonObject, stringValue } from '@/lib/server/ai';
+import { errorResponse, optionalString, readJsonObject, RequestError } from '@/lib/server/api';
 
-export async function POST(request: NextRequest) {
+interface PlanningSource {
+    title?: unknown;
+    engagementRate?: unknown;
+    topComments?: unknown;
+}
+
+export async function POST(request: Request) {
     try {
-        const { provider, apiKey, youtubeData, concept } = await request.json();
-
-        if (!apiKey) return NextResponse.json({ error: 'API 키가 설정되지 않았습니다.' }, { status: 400 });
-        if (!youtubeData || youtubeData.length === 0) return NextResponse.json({ error: '분석할 데이터가 없습니다.' }, { status: 400 });
-
-        let model;
-        if (provider === 'gemini') {
-            const google = createGoogleGenerativeAI({ apiKey: apiKey.trim() });
-            model = google('gemini-2.0-flash');
-        } else if (provider === 'groq') {
-            const groq = createOpenAI({ apiKey: apiKey.trim(), baseURL: 'https://api.groq.com/openai/v1' });
-            model = groq('llama-3.3-70b-versatile');
-        } else if (provider === 'openai') {
-            const openai = createOpenAI({ apiKey: apiKey.trim() });
-            model = openai('gpt-4o-mini');
-        } else {
-            return NextResponse.json({ error: '지원하지 않는 프로바이더입니다.' }, { status: 400 });
+        const body = await readJsonObject(request);
+        const model = createAiModel(body);
+        const concept = optionalString(body, 'concept');
+        const youtubeData = body.youtubeData;
+        if (!Array.isArray(youtubeData) || youtubeData.length === 0) {
+            throw new RequestError('분석할 유튜브 데이터가 없습니다.');
         }
 
-        const compressedData = youtubeData.map((v: any) => ({
-            title: v.title,
-            engagement: v.engagementRate,
-            topComments: v.topComments
-        }));
+        const compressedData = youtubeData.slice(0, 30).map((source) => {
+            const video = source && typeof source === 'object' ? source as PlanningSource : {};
+            return {
+                title: stringValue(video.title),
+                engagement: typeof video.engagementRate === 'number' ? video.engagementRate : 0,
+                topComments: Array.isArray(video.topComments)
+                    ? video.topComments.filter((comment): comment is string => typeof comment === 'string').slice(0, 3)
+                    : [],
+            };
+        });
 
-        const conceptInstruction = concept && concept.trim() !== ''
+        const conceptInstruction = concept
             ? `사용자가 요구한 핵심 기획 방향은 다음과 같다: [${concept}]`
             : `제공된 유튜브 데이터의 핵심 키워드, 타겟 시청자층, 트렌드를 스스로 분석하여 가장 조회수가 잘 나올 수 있는 최적의 기획 주제와 방향성을 자동 설정해라.`;
 
@@ -62,20 +62,14 @@ ${conceptInstruction}
             prompt: userPrompt,
         });
 
-        // 객체 {} 형태를 추출하도록 정규식 수정
-        const match = text.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error("JSON 객체를 찾을 수 없습니다.");
+        const parsed = parseJsonObject(text);
+        const plans = Array.isArray(parsed.plans)
+            ? parsed.plans.filter((plan) => plan && typeof plan === 'object').slice(0, 3)
+            : [];
+        if (plans.length === 0) throw new Error('AI가 유효한 기획안을 반환하지 않았습니다.');
 
-        const parsed = JSON.parse(match[0]);
-
-        // 안전한 파싱 핸들링
-        const plans = Array.isArray(parsed) ? parsed : (parsed.plans || []);
-        const inferredTheme = parsed.inferredTheme || '';
-
-        return NextResponse.json({ plans, inferredTheme });
-
-    } catch (error: any) {
-        console.error('API Error:', error);
-        return NextResponse.json({ error: `기획안 생성 실패: 데이터 파싱 오류 또는 API 에러입니다.` }, { status: 500 });
+        return NextResponse.json({ plans, inferredTheme: stringValue(parsed.inferredTheme) });
+    } catch (error: unknown) {
+        return errorResponse(error, '기획안 생성에 실패했습니다. API 키와 모델 설정을 확인해주세요.', 'Planning API');
     }
 }

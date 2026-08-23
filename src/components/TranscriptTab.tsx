@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { copyText, fetchJson } from '@/lib/http';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function TranscriptTab() {
     const [url, setUrl] = useState<string>('');
@@ -17,33 +19,29 @@ export default function TranscriptTab() {
         setTranscript('');
 
         try {
-            const response = await fetch('/api/transcript', {
+            const data = await fetchJson<{ text: string }>('/api/transcript', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url }),
             });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || '오류가 발생했습니다.');
-
             setTranscript(data.text);
-        } catch (err: any) {
-            setError(err.message || '요청 처리 중 오류가 발생했습니다.');
+        } catch (requestError: unknown) {
+            setError(getErrorMessage(requestError, '요청 처리 중 오류가 발생했습니다.'));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 animate-fadeIn">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 sm:p-8 animate-fadeIn">
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">📹 유튜브 자막 추출</h2>
-                <p className="text-slate-500 text-sm">영상 URL을 입력하여 한국어 자막을 한 번에 긁어옵니다.</p>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">📹 유튜브 자막 추출</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">일반 영상, Shorts, youtu.be 링크를 지원하며 한국어 자막을 우선 추출합니다.</p>
             </div>
 
             <form onSubmit={handleFetchTranscript} className="flex flex-col sm:flex-row gap-3 mb-6">
                 <input
-                    type="text"
+                    type="url"
                     placeholder="https://www.youtube.com/watch?v=..."
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
@@ -70,7 +68,7 @@ export default function TranscriptTab() {
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-slate-900">추출된 자막 결과</h3>
                         <button
-                            onClick={() => navigator.clipboard.writeText(transcript)}
+                            onClick={() => copyText(transcript).catch((copyError: unknown) => setError(getErrorMessage(copyError)))}
                             className="text-xs px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition-colors"
                         >
                             전체 복사하기

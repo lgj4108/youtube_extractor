@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MusicAiPlan } from './MusicAiResult';
 
 interface MusicLyricsPanelProps {
@@ -12,12 +12,6 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
     const history = activePlan?.history || [];
     const [viewIndex, setViewIndex] = useState<number>(Math.max(0, history.length - 1));
 
-    useEffect(() => {
-        if (history.length > 0) {
-            setViewIndex(history.length - 1);
-        }
-    }, [history.length]);
-
     if (activePlan?.isGeneratingLyrics) {
         return (
             <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn flex flex-col items-center justify-center py-20">
@@ -29,11 +23,9 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
 
     if (history.length === 0) return null;
 
-    // 💡 핵심 에러 방어 코드: 인덱스가 범위를 벗어나면 안전하게 마지막(최신) 인덱스로 고정
     const safeIndex = Math.min(viewIndex, history.length - 1);
     const currentView = history[safeIndex];
 
-    // 만약의 경우를 위한 2차 방어
     if (!currentView) return null;
 
     return (
@@ -60,7 +52,6 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                     <div className="flex justify-between items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
                         <h3 className="text-xl font-bold text-slate-900 dark:text-white">🎧 {activePlan.title} <span className="text-sm text-indigo-500 font-normal ml-2">- 버전 {safeIndex + 1}</span></h3>
                         <div className="flex gap-2">
-                            {/* 💡 에러가 났던 원인 부분 (이제 안전한 currentView를 참조하므로 뻗지 않음) */}
                             {currentView.usedPrompt && (
                                 <button onClick={() => onOpenPrompt(`${activePlan.title} (버전 ${safeIndex + 1}) 가사 프롬프트`, currentView.usedPrompt!)} className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-2 rounded-lg font-bold transition-colors">
                                     👀 프롬프트 보기

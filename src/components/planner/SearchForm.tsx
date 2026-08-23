@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent } from 'react';
+import { useTrendKeywords } from '@/hooks/useTrendKeywords';
 
-// 💡 생략했던 기존 타입들을 모두 명시했습니다! (빨간불 해결)
 interface SearchFormProps {
     keyword: string;
     setKeyword: (val: string) => void;
@@ -18,46 +18,7 @@ interface SearchFormProps {
 }
 
 export default function SearchForm({ keyword, setKeyword, period, setPeriod, duration, setDuration, region, setRegion, categoryId, onSubmit, loading }: SearchFormProps) {
-    const [recommendedWords, setRecommendedWords] = useState<string[]>([]);
-
-    // 💡 화면에 실제로 보여줄(셔플된) 단어 상태
-    const [displayWords, setDisplayWords] = useState<string[]>([]);
-    const [trendLoading, setTrendLoading] = useState<boolean>(true);
-
-    // 💡 애니메이션을 위한 새로고침 상태
-    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-
-    useEffect(() => {
-        const fetchTrends = async () => {
-            try {
-                const url = categoryId ? `/api/trends?categoryId=${categoryId}` : '/api/trends';
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.keywords && data.keywords.length > 0) {
-                    setRecommendedWords(data.keywords);
-                    // 최초 로드 시 6개만 잘라서 화면에 세팅
-                    setDisplayWords(data.keywords.slice(0, 6));
-                }
-            } catch (error) {
-                console.error('트렌드 키워드 에러', error);
-            } finally {
-                setTrendLoading(false);
-            }
-        };
-        fetchTrends();
-    }, [categoryId]);
-
-    // 💡 새로고침 버튼 클릭 시 실행될 셔플 로직
-    const handleRefresh = () => {
-        if (recommendedWords.length === 0) return;
-        setIsRefreshing(true);
-
-        setTimeout(() => {
-            const shuffled = [...recommendedWords].sort(() => 0.5 - Math.random());
-            setDisplayWords(shuffled.slice(0, 6));
-            setIsRefreshing(false);
-        }, 300);
-    };
+    const { displayWords, hasKeywords, isLoading: trendLoading, refresh } = useTrendKeywords(categoryId);
 
     return (
         <div className="mb-6">
@@ -119,16 +80,15 @@ export default function SearchForm({ keyword, setKeyword, period, setPeriod, dur
             <div className="flex flex-wrap items-center gap-2 px-2 min-h-[32px]">
                 <span className="text-sm font-semibold text-slate-500 mr-1">🔥 지금 뜨는 키워드:</span>
 
-                {/* 💡 새로고침 버튼 */}
-                {!trendLoading && recommendedWords.length > 0 && (
+                {!trendLoading && hasKeywords && (
                     <button
                         type="button"
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
+                        onClick={refresh}
                         className="p-1 mr-1 text-slate-400 hover:text-indigo-500 transition-colors rounded-full hover:bg-indigo-50"
                         title="다른 키워드 보기"
+                        aria-label="추천 키워드 섞기"
                     >
-                        <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-indigo-500' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                     </button>

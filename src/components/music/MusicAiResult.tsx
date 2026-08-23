@@ -8,7 +8,7 @@ import MusicLyricsPanel from './MusicLyricsPanel';
 export interface LyricsVersion {
     lyrics: string;
     scenePrompts: string[];
-    usedPrompt?: string; // 💡 버전별 프롬프트 저장소
+    usedPrompt?: string;
 }
 
 export interface MusicAiPlan {
@@ -23,12 +23,11 @@ export interface MusicAiPlan {
 }
 
 interface MusicAiResultProps {
-    searchedKeyword: string;
     videos: YouTubeVideo[];
     aiPlans: MusicAiPlan[];
     isGeneratingPlans: boolean;
     inferredTheme: string;
-    planPrompt: string; // 💡 기획 프롬프트 받기
+    planPrompt: string;
     genre: string[]; setGenre: (val: string[]) => void;
     vocalType: string; setVocalType: (val: string) => void;
     mainLang: string; setMainLang: (val: string) => void;
@@ -38,7 +37,7 @@ interface MusicAiResultProps {
 }
 
 export default function MusicAiResult({
-                                          searchedKeyword, videos, aiPlans, isGeneratingPlans, inferredTheme, planPrompt,
+                                          videos, aiPlans, isGeneratingPlans, inferredTheme, planPrompt,
                                           genre, setGenre, vocalType, setVocalType, mainLang, setMainLang, subLangs, setSubLangs,
                                           onGeneratePlans, onGenerateLyrics
                                       }: MusicAiResultProps) {
@@ -46,7 +45,6 @@ export default function MusicAiResult({
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(null);
     const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-    // 💡 프롬프트 뷰어 모달 상태
     const [promptModal, setPromptModal] = useState<{isOpen: boolean, title: string, content: string}>({ isOpen: false, title: '', content: '' });
 
     const showToast = (msg: string) => {
@@ -65,10 +63,11 @@ export default function MusicAiResult({
         onGenerateLyrics(index, title, musicStyle);
     };
 
+    const activePlan = activeDetailIndex === null ? undefined : aiPlans[activeDetailIndex];
+
     return (
         <div className="flex flex-col gap-6 animate-fadeIn relative">
 
-            {/* 💡 프롬프트 뷰어 팝업 모달 */}
             {promptModal.isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-700">
@@ -108,7 +107,6 @@ export default function MusicAiResult({
                 onGeneratePlans={onGeneratePlans}
             />
 
-            {/* 💡 기획 테마 바 옆에 '프롬프트 보기' 버튼 추가 */}
             {inferredTheme && (
                 <div className="flex justify-between items-center bg-indigo-50 dark:bg-slate-900/60 p-4 rounded-lg border border-indigo-200 dark:border-slate-700 text-sm">
                     <div className="flex items-center gap-2">
@@ -128,17 +126,19 @@ export default function MusicAiResult({
                 <MusicPlanCards
                     aiPlans={aiPlans}
                     activeDetailIndex={activeDetailIndex}
+                    onSelect={setActiveDetailIndex}
                     onGenerateClick={handleGenerateClick}
                     showToast={showToast}
                 />
             )}
 
             {/* 3. 하단 가사 패널 */}
-            {activeDetailIndex !== null && (
+            {activePlan && activeDetailIndex !== null && (
                 <MusicLyricsPanel
-                    activePlan={aiPlans[activeDetailIndex]}
+                    key={`${activeDetailIndex}-${activePlan.history?.length ?? 0}`}
+                    activePlan={activePlan}
                     showToast={showToast}
-                    onOpenPrompt={openPromptViewer} // 💡 프롬프트 뷰어 함수 전달
+                    onOpenPrompt={openPromptViewer}
                 />
             )}
         </div>

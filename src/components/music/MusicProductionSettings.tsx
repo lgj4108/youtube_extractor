@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 interface MusicProductionSettingsProps {
-    genre: string[]; setGenre: (val: string[]) => void; // 💡 string[] 로 변경
+    genre: string[]; setGenre: (val: string[]) => void;
     vocalType: string; setVocalType: (val: string) => void;
     mainLang: string; setMainLang: (val: string) => void;
     subLangs: string[]; setSubLangs: (val: string[]) => void;
@@ -15,24 +15,26 @@ export default function MusicProductionSettings({
                                                 }: MusicProductionSettingsProps) {
 
     const [isLangModalOpen, setIsLangModalOpen] = useState<boolean>(false);
+    const [selectionMessage, setSelectionMessage] = useState('');
 
     const handleSubLangChange = (lang: string) => {
         setSubLangs(subLangs.includes(lang) ? subLangs.filter(l => l !== lang) : [...subLangs, lang]);
     };
 
-    // 💡 장르 믹스 토글 함수 (최대 3개 제한, 최소 1개 유지)
     const handleGenreToggle = (val: string) => {
         if (genre.includes(val)) {
             if (genre.length > 1) {
                 setGenre(genre.filter(g => g !== val));
+                setSelectionMessage('');
             } else {
-                alert('최소 1개의 장르는 선택해야 합니다.');
+                setSelectionMessage('최소 1개의 장르는 선택해야 합니다.');
             }
         } else {
             if (genre.length >= 3) {
-                alert('장르는 최대 3개까지만 믹스할 수 있습니다.');
+                setSelectionMessage('장르는 최대 3개까지만 믹스할 수 있습니다.');
             } else {
                 setGenre([...genre, val]);
+                setSelectionMessage('');
             }
         }
     };
@@ -49,7 +51,6 @@ export default function MusicProductionSettings({
 
     return (
         <>
-            {/* 언어 설정 모달 (기존과 동일) */}
             {isLangModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
@@ -87,7 +88,6 @@ export default function MusicProductionSettings({
                 <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">🎶 2단계: 프로덕션 세부 설정</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-                    {/* 💡 장르 영역: 다중 선택 버튼으로 변경 */}
                     <div>
                         <label className="text-xs font-bold text-slate-500 block mb-1.5">음악 장르 믹스 <span className="text-[10px] text-indigo-400 font-normal">(최대 3개)</span></label>
                         <div className="flex flex-wrap gap-1.5">
@@ -102,6 +102,7 @@ export default function MusicProductionSettings({
                                 </button>
                             ))}
                         </div>
+                        {selectionMessage && <p className="mt-2 text-[11px] font-semibold text-rose-500" role="status">{selectionMessage}</p>}
                     </div>
 
                     <div>

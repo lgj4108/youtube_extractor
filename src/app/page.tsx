@@ -1,53 +1,80 @@
 'use client';
 
-import { useState } from 'react';
+import MusicVideoTab from '@/components/MusicVideoTab';
 import PlannerTab from '@/components/PlannerTab';
-import MusicVideoTab from '@/components/MusicVideoTab'; // 새로 만든 탭 임포트
+import TranscriptTab from '@/components/TranscriptTab';
+import MusicMasteringTab from '@/components/music/MusicMasteringTab';
+import { useStoredString } from '@/lib/storage';
+
+const TABS = [
+    { id: 'planner', label: '유튜브 기획', icon: '✨' },
+    { id: 'music', label: 'AI 음악 제작', icon: '🎵' },
+    { id: 'mastering', label: '음원 마스터링', icon: '🎛️' },
+    { id: 'transcript', label: '자막 추출', icon: '📹' },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
+
+function isTabId(value: string): value is TabId {
+    return TABS.some((tab) => tab.id === value);
+}
 
 export default function CreatorDashboard() {
-  const [activeTab, setActiveTab] = useState<'planner' | 'music'>('planner');
-  const [isDark, setIsDark] = useState<boolean>(false);
+    const [storedTab, setStoredTab] = useStoredString('creator_active_tab', 'planner');
+    const [theme, setTheme] = useStoredString('creator_theme', 'light');
+    const activeTab = isTabId(storedTab) ? storedTab : 'planner';
+    const isDark = theme === 'dark';
 
-  return (
-      <div className={isDark ? 'dark' : ''}>
-        <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 flex flex-col items-center py-12 px-4 sm:px-6">
-          <div className="w-full max-w-5xl relative">
+    return (
+        <div className={isDark ? 'dark' : ''}>
+            <main className="min-h-screen bg-slate-50 px-4 py-8 transition-colors duration-200 dark:bg-slate-950 sm:px-6 sm:py-12">
+                <div className="mx-auto w-full max-w-6xl">
+                    <header className="mb-8 flex items-start justify-between gap-4">
+                        <div>
+                            <p className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-indigo-600 dark:text-indigo-400">Creator workflow</p>
+                            <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 dark:text-white sm:text-4xl">크리에이터 스튜디오</h1>
+                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">트렌드 조사부터 음악 제작, 마스터링, 자막 정리까지 한곳에서 진행하세요.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                            className="shrink-0 rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 shadow-sm transition hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                            aria-label={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+                            title={isDark ? '라이트 모드' : '다크 모드'}
+                        >
+                            {isDark ? '☀️' : '🌙'}
+                        </button>
+                    </header>
 
-            <button onClick={() => setIsDark(!isDark)} className="absolute top-0 right-0 p-2 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200 text-slate-600 dark:text-slate-300">
-              {isDark ? '☀️' : '🌙'}
-            </button>
+                    <nav className="mb-8 overflow-x-auto pb-1" aria-label="크리에이터 도구" role="tablist">
+                        <div className="flex min-w-max gap-1 rounded-2xl bg-slate-200/70 p-1.5 dark:bg-slate-800">
+                            {TABS.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    id={`tab-${tab.id}`}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === tab.id}
+                                    aria-controls={`panel-${tab.id}`}
+                                    onClick={() => setStoredTab(tab.id)}
+                                    className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-all sm:px-6 ${
+                                        activeTab === tab.id
+                                            ? 'bg-white text-indigo-700 shadow-sm dark:bg-slate-700 dark:text-indigo-300'
+                                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                                    }`}
+                                >
+                                    <span aria-hidden="true">{tab.icon}</span> {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </nav>
 
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-3">🚀 크리에이터 스튜디오</h1>
-            </div>
-
-            <div className="flex justify-center mb-8">
-              <div className="inline-flex bg-slate-200/60 dark:bg-slate-800 p-1.5 rounded-2xl gap-1">
-                <button
-                    onClick={() => setActiveTab('planner')}
-                    className={`px-8 py-3 text-sm font-bold rounded-xl transition-all ${
-                        activeTab === 'planner' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500'
-                    }`}
-                >
-                  ✨ 일반 유튜브 기획자
-                </button>
-                <button
-                    onClick={() => setActiveTab('music')}
-                    className={`px-8 py-3 text-sm font-bold rounded-xl transition-all ${
-                        activeTab === 'music' ? 'bg-fuchsia-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                >
-                  🎵 AI 뮤직비디오 메이커
-                </button>
-              </div>
-            </div>
-
-            {/* 탭 전환 (CSS Hiding으로 상태 유지) */}
-            <div className={activeTab === 'planner' ? 'block' : 'hidden'}><PlannerTab /></div>
-            <div className={activeTab === 'music' ? 'block' : 'hidden'}><MusicVideoTab /></div>
-
-          </div>
-        </main>
-      </div>
-  );
+                    <section id="panel-planner" role="tabpanel" aria-labelledby="tab-planner" hidden={activeTab !== 'planner'}><PlannerTab /></section>
+                    <section id="panel-music" role="tabpanel" aria-labelledby="tab-music" hidden={activeTab !== 'music'}><MusicVideoTab /></section>
+                    <section id="panel-mastering" role="tabpanel" aria-labelledby="tab-mastering" hidden={activeTab !== 'mastering'}><MusicMasteringTab /></section>
+                    <section id="panel-transcript" role="tabpanel" aria-labelledby="tab-transcript" hidden={activeTab !== 'transcript'}><TranscriptTab /></section>
+                </div>
+            </main>
+        </div>
+    );
 }

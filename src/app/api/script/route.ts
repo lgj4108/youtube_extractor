@@ -1,31 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createAiModel } from '@/lib/server/ai';
+import { errorResponse, optionalString, readJsonObject, requiredString } from '@/lib/server/api';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
     try {
-        // format 파라미터를 추가로 받습니다 ('short' | 'long')
-        const { provider, apiKey, title, systemPrompt, format } = await request.json();
-
-        if (!apiKey) return NextResponse.json({ error: 'API 키가 필요합니다.' }, { status: 400 });
-        if (!title) return NextResponse.json({ error: '기획안 제목이 없습니다.' }, { status: 400 });
-
-        let model;
-        if (provider === 'gemini') {
-            const google = createGoogleGenerativeAI({ apiKey: apiKey.trim() });
-            model = google('gemini-2.0-flash');
-        } else if (provider === 'groq') {
-            const groq = createOpenAI({ apiKey: apiKey.trim(), baseURL: 'https://api.groq.com/openai/v1' });
-            model = groq('llama-3.3-70b-versatile');
-        } else if (provider === 'openai') {
-            const openai = createOpenAI({ apiKey: apiKey.trim() });
-            model = openai('gpt-4o-mini');
-        } else {
-            return NextResponse.json({ error: '지원하지 않는 프로바이더입니다.' }, { status: 400 });
-        }
-
-        const cleanContext = systemPrompt.split('반드시 아래 JSON')[0];
+        const body = await readJsonObject(request);
+        const model = createAiModel(body);
+        const title = requiredString(body, 'title', '기획안 제목이 없습니다.');
+        const format = body.format === 'long' ? 'long' : 'short';
+        const cleanContext = optionalString(body, 'systemPrompt').split('반드시 아래 JSON')[0].slice(0, 12_000);
 
         // 포맷에 따른 지시사항 다이내믹 바인딩
         let scriptInstruction = '';
@@ -74,8 +58,7 @@ ${cleanContext}
 
         return NextResponse.json({ script: text.trim() });
 
-    } catch (error: any) {
-        console.error('Script Error:', error);
-        return NextResponse.json({ error: '대본 생성 중 에러가 발생했습니다.' }, { status: 500 });
+    } catch (error: unknown) {
+        return errorResponse(error, '대본 생성 중 오류가 발생했습니다.', 'Script API');
     }
 }

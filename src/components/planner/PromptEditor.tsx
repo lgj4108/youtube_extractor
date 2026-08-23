@@ -19,7 +19,7 @@ export default function PromptEditor({ concept, setConcept }: PromptEditorProps)
                 className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400"
             />
             <p className="text-xs text-slate-500 mt-2">
-                * 특별히 원하는 조건이 있을 때만 입력하세요. (예: "결말은 슬프게", "B급 코미디 스타일로")
+                * 특별히 원하는 조건이 있을 때만 입력하세요. 예: ‘결말은 슬프게’, ‘B급 코미디 스타일로’
             </p>
         </div>
     );
