@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { copyText } from '@/lib/http';
 import MusicProductionSettings from './MusicProductionSettings';
 import MusicPlanCards from './MusicPlanCards';
 import MusicLyricsPanel from './MusicLyricsPanel';
@@ -77,7 +78,7 @@ export default function MusicAiResult({
                             {promptModal.content}
                         </div>
                         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0">
-                            <button onClick={() => { navigator.clipboard.writeText(promptModal.content); showToast('프롬프트가 복사되었습니다.'); }} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                            <button onClick={() => { void copyText(promptModal.content).then(() => showToast('프롬프트가 복사되었습니다.')).catch(() => showToast('프롬프트를 복사하지 못했습니다.')); }} className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
                                 프롬프트 복사
                             </button>
                         </div>

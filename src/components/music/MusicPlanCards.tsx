@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { copyText } from '@/lib/http';
 import { MusicAiPlan } from './MusicAiResult';
 
 interface MusicPlanCardsProps {
@@ -13,38 +14,76 @@ interface MusicPlanCardsProps {
 export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, onGenerateClick, showToast }: MusicPlanCardsProps) {
     const [copiedTitleIndex, setCopiedTitleIndex] = useState<number | null>(null);
 
-    const handleCopyTitle = (e: React.MouseEvent, title: string, index: number) => {
+    const copyWithToast = async (text: string, successMessage: string) => {
+        try {
+            await copyText(text);
+            showToast(successMessage);
+        } catch {
+            showToast('복사하지 못했습니다. 브라우저의 클립보드 권한을 확인해주세요.');
+        }
+    };
+
+    const handleCopyTitle = async (e: React.MouseEvent, title: string, index: number) => {
         e.stopPropagation();
-        navigator.clipboard.writeText(title);
-        showToast(`트랙 ${index + 1}의 제목이 복사되었습니다.`);
-        setCopiedTitleIndex(index);
-        setTimeout(() => setCopiedTitleIndex(null), 2000);
+        try {
+            await copyText(title);
+            showToast(`트랙 ${index + 1}의 제목이 복사되었습니다.`);
+            setCopiedTitleIndex(index);
+            setTimeout(() => setCopiedTitleIndex(null), 2000);
+        } catch {
+            showToast('제목을 복사하지 못했습니다. 브라우저 권한을 확인해주세요.');
+        }
+    };
+
+    const handleCopyPlan = async (e: React.MouseEvent, plan: MusicAiPlan, index: number) => {
+        e.stopPropagation();
+        const packageText = [
+            `제목: ${plan.title}`,
+            '',
+            'Suno Style of Music:',
+            plan.musicStyle,
+            ...(plan.musicStyleKor ? ['', '스타일 설명:', plan.musicStyleKor] : []),
+            '',
+            '앨범 커버 / 썸네일 프롬프트:',
+            plan.midjourneyPrompt,
+        ].join('\n');
+
+        try {
+            await copyText(packageText);
+            showToast(`트랙 ${index + 1}의 제목과 프롬프트를 한 번에 복사했습니다.`);
+        } catch {
+            showToast('기획안을 복사하지 못했습니다. 브라우저 권한을 확인해주세요.');
+        }
     };
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {aiPlans.map((plan, index) => (
                 <div key={index} className={`bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border flex flex-col h-full transition-all ${activeDetailIndex === index ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-900' : 'border-slate-200 dark:border-slate-700'}`}>
-                    <span className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 text-xs font-bold rounded-md mb-3 w-max">트랙 {index + 1}</span>
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 text-xs font-bold rounded-md w-max">트랙 {index + 1}</span>
+                        <button
+                            onClick={(e) => void handleCopyPlan(e, plan, index)}
+                            className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                            title="제목, Suno 스타일, 커버 프롬프트를 한 번에 복사"
+                        >
+                            📦 기획 전체 복사
+                        </button>
+                    </div>
 
-                    <div className="flex justify-between items-start mb-4 gap-2 group">
+                    <div className="flex justify-between items-start mb-4 gap-2">
                         <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight break-words flex-1">
                             {plan.title}
                         </h3>
                         <button
-                            onClick={(e) => handleCopyTitle(e, plan.title, index)}
-                            className="shrink-0 p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            onClick={(e) => void handleCopyTitle(e, plan.title, index)}
+                            className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${copiedTitleIndex === index ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300' : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900'}`}
                             title="제목 복사하기"
                         >
                             {copiedTitleIndex === index ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
+                                '✓ 복사됨'
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
+                                '📋 제목 복사'
                             )}
                         </button>
                     </div>
@@ -52,12 +91,12 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
                     <div className="mb-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 p-3">
                         <div className="flex justify-between items-center mb-2">
                             <p className="text-[10px] font-bold text-indigo-500">🎸 Suno Style of Music</p>
-                            <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(plan.musicStyle); showToast(`트랙 ${index + 1}의 Suno 스타일 프롬프트가 복사되었습니다.`); }} className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:hover:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded transition-colors font-bold">
+                            <button onClick={(e) => { e.stopPropagation(); void copyWithToast(plan.musicStyle, `트랙 ${index + 1}의 Suno 스타일 프롬프트가 복사되었습니다.`); }} className="text-[10px] bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:hover:bg-indigo-800 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded transition-colors font-bold">
                                 스타일 복사
                             </button>
                         </div>
                         {plan.musicStyleKor && <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 leading-relaxed">🇰🇷 {plan.musicStyleKor}</p>}
-                        <p onClick={() => { navigator.clipboard.writeText(plan.musicStyle); showToast(`트랙 ${index + 1}의 Suno 스타일 프롬프트가 복사되었습니다.`); }} className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="Suno의 Style of Music 입력란에 붙여넣기">
+                        <p onClick={() => { void copyWithToast(plan.musicStyle, `트랙 ${index + 1}의 Suno 스타일 프롬프트가 복사되었습니다.`); }} className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="Suno의 Style of Music 입력란에 붙여넣기">
                             {plan.musicStyle}
                         </p>
                     </div>
@@ -65,11 +104,11 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
                     <div className="mb-4 flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 p-3">
                         <div className="flex justify-between items-center mb-2">
                             <p className="text-[10px] font-bold text-slate-500">🖼️ 앨범 커버 / 썸네일</p>
-                            <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(plan.midjourneyPrompt); showToast(`트랙 ${index + 1}의 커버 프롬프트가 복사되었습니다.`); }} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 transition-colors font-bold">
+                            <button onClick={(e) => { e.stopPropagation(); void copyWithToast(plan.midjourneyPrompt, `트랙 ${index + 1}의 커버 프롬프트가 복사되었습니다.`); }} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 transition-colors font-bold">
                                 복사
                             </button>
                         </div>
-                        <p onClick={() => { navigator.clipboard.writeText(plan.midjourneyPrompt); showToast(`트랙 ${index + 1}의 커버 프롬프트가 복사되었습니다.`); }} className="text-[11px] text-slate-600 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="클릭 복사">
+                        <p onClick={() => { void copyWithToast(plan.midjourneyPrompt, `트랙 ${index + 1}의 커버 프롬프트가 복사되었습니다.`); }} className="text-[11px] text-slate-600 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="클릭 복사">
                             {plan.midjourneyPrompt}
                         </p>
                     </div>

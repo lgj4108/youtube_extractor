@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { copyText } from '@/lib/http';
 import { MusicAiPlan } from './MusicAiResult';
 
 interface MusicLyricsPanelProps {
@@ -12,7 +13,16 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
     const history = activePlan?.history || [];
     const [viewIndex, setViewIndex] = useState<number>(Math.max(0, history.length - 1));
 
-    if (activePlan?.isGeneratingLyrics) {
+    const copyWithToast = async (text: string, successMessage: string) => {
+        try {
+            await copyText(text);
+            showToast(successMessage);
+        } catch {
+            showToast('복사하지 못했습니다. 브라우저의 클립보드 권한을 확인해주세요.');
+        }
+    };
+
+    if (activePlan?.isGeneratingLyrics && history.length === 0) {
         return (
             <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn flex flex-col items-center justify-center py-20">
                 <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
@@ -53,6 +63,16 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
     return (
         <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn flex flex-col h-full">
 
+            {activePlan.isGeneratingLyrics && (
+                <div className="mb-5 flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-200" role="status" aria-live="polite">
+                    <span className="h-5 w-5 shrink-0 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" aria-hidden="true"></span>
+                    <div>
+                        <p className="font-bold">새 가사 버전을 생성하고 있습니다.</p>
+                        <p className="mt-0.5 text-xs text-indigo-600 dark:text-indigo-300">기다리는 동안 아래에서 기존 가사와 이전 버전을 계속 확인·복사할 수 있습니다.</p>
+                    </div>
+                </div>
+            )}
+
             {history.length > 1 && (
                 <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
                     <span className="text-xs font-bold text-slate-500 py-1.5 mr-2">🗂️ 버전 기록:</span>
@@ -79,7 +99,7 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                                     👀 프롬프트 보기
                                 </button>
                             )}
-                            <button onClick={() => {navigator.clipboard.writeText(currentView.lyrics); showToast(`버전 ${safeIndex + 1} 가사가 복사되었습니다.`);}} className="text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/50 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg font-bold transition-colors">
+                            <button onClick={() => {void copyWithToast(currentView.lyrics, `버전 ${safeIndex + 1} 가사가 복사되었습니다.`);}} className="text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/50 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg font-bold transition-colors">
                                 📋 현재 가사 복사
                             </button>
                             <button onClick={downloadPackage} className="rounded-lg bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
@@ -96,11 +116,11 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                     <div className="flex flex-col gap-2 shrink-0">
                         <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
                             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎸 Suno Style of Music</h4>
-                            <button onClick={() => {navigator.clipboard.writeText(activePlan.musicStyle); showToast('Suno 스타일 프롬프트가 복사되었습니다.');}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">스타일 복사</button>
+                            <button onClick={() => {void copyWithToast(activePlan.musicStyle, 'Suno 스타일 프롬프트가 복사되었습니다.');}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">스타일 복사</button>
                         </div>
                         <div className="p-4 bg-indigo-50/60 dark:bg-slate-800 rounded-lg border border-indigo-100 dark:border-slate-700 flex flex-col gap-3">
                             {activePlan.musicStyleKor && <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed">🇰🇷 {activePlan.musicStyleKor}</p>}
-                            <div className="text-xs font-mono text-indigo-900 dark:text-indigo-300 select-all cursor-pointer hover:text-indigo-600 transition-colors pt-2 border-t border-indigo-100 dark:border-slate-700" onClick={() => {navigator.clipboard.writeText(activePlan.musicStyle); showToast('Suno 스타일 프롬프트가 복사되었습니다.');}} title="Suno의 Style of Music 입력란에 붙여넣기">
+                            <div className="text-xs font-mono text-indigo-900 dark:text-indigo-300 select-all cursor-pointer hover:text-indigo-600 transition-colors pt-2 border-t border-indigo-100 dark:border-slate-700" onClick={() => {void copyWithToast(activePlan.musicStyle, 'Suno 스타일 프롬프트가 복사되었습니다.');}} title="Suno의 Style of Music 입력란에 붙여넣기">
                                 {activePlan.musicStyle}
                             </div>
                         </div>
@@ -109,11 +129,11 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                     <div className="flex flex-col gap-2 flex-1 min-h-[400px]">
                         <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 shrink-0">
                             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎬 뮤비 씬(Scene) 프롬프트</h4>
-                            <button onClick={() => {const all = currentView.scenePrompts?.join('\n\n') || ''; navigator.clipboard.writeText(all); showToast(`버전 ${safeIndex + 1} 씬이 일괄 복사되었습니다.`);}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">일괄 복사</button>
+                            <button onClick={() => {const all = currentView.scenePrompts?.join('\n\n') || ''; void copyWithToast(all, `버전 ${safeIndex + 1} 씬이 일괄 복사되었습니다.`);}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">일괄 복사</button>
                         </div>
                         <div className="flex flex-col gap-2 h-full overflow-y-auto pr-1">
                             {currentView.scenePrompts?.map((p, idx) => (
-                                <div key={idx} onClick={() => {navigator.clipboard.writeText(p); showToast(`Scene ${idx + 1} 프롬프트가 복사되었습니다.`);}} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 break-words select-all hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer" title="클릭 복사">
+                                <div key={idx} onClick={() => {void copyWithToast(p, `Scene ${idx + 1} 프롬프트가 복사되었습니다.`);}} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 break-words select-all hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer" title="클릭 복사">
                                     <span className="inline-block bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded text-[10px] mb-1">Scene {idx + 1}</span><br/>{p}
                                 </div>
                             ))}
