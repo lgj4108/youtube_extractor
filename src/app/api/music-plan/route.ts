@@ -13,6 +13,7 @@ export async function POST(request: Request) {
         const body = await readJsonObject(request);
         const aiModel = createAiModel(body, { geminiModel: 'gemini-3.5-flash' });
         const youtubeData = Array.isArray(body.youtubeData) ? body.youtubeData : [];
+        const creativeKeyword = optionalString(body, 'creativeKeyword').slice(0, 500);
         const genre = optionalString(body, 'genre', 'K-POP / 댄스');
         const vocalType = optionalString(body, 'vocalType', 'Auto');
         const mainLang = optionalString(body, 'mainLang', 'KR');
@@ -50,13 +51,15 @@ export async function POST(request: Request) {
         ${roleAndCustom}
 
         [시스템 제공 데이터 및 필수 반영 변수]
+        - 사용자가 직접 입력한 핵심 창작 키워드: ${creativeKeyword || '자유 주제'}
         - 타겟 음악 장르: ${genre}
         - 타겟 보컬 타입: ${vocalGuide}
         - 타겟 곡 언어 규칙: ${langGuide}
         - 출력 언어 설정: **${fullMainLang}**
-        - 유튜브 인기 트렌드 참고 데이터: ${JSON.stringify(compressedData)}
+        - 유튜브 인기 트렌드 참고 데이터(없으면 무시): ${JSON.stringify(compressedData)}
         
-        위 데이터를 바탕으로 대중들이 열광할 만한 새로운 창작 곡 컨셉 3가지를 기획해 줘.
+        사용자의 핵심 창작 키워드를 가장 중요한 기준으로 삼아 새로운 창작 곡 컨셉 3가지를 기획해 줘.
+        유튜브 참고 데이터가 있으면 키워드의 의도를 해치지 않는 범위에서만 보조 자료로 활용하고, 데이터가 없어도 완성도 높은 기획안을 만들어라.
         
         [⚠️ 기획 시 특별 금지/주의사항]
         유튜브 데이터에 '조선힙합' 같은 전통적 키워드가 있더라도 '해금', '가야금', '한복', '조선' 같은 1차원적인 국악/사극 단어를 제목이나 기획안 텍스트에 절대 직접 쓰지 마라.

@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { YouTubeVideo } from '@/types/youtube';
 import MusicProductionSettings from './MusicProductionSettings';
 import MusicPlanCards from './MusicPlanCards';
 import MusicLyricsPanel from './MusicLyricsPanel';
@@ -23,7 +22,6 @@ export interface MusicAiPlan {
 }
 
 interface MusicAiResultProps {
-    videos: YouTubeVideo[];
     aiPlans: MusicAiPlan[];
     isGeneratingPlans: boolean;
     inferredTheme: string;
@@ -37,7 +35,7 @@ interface MusicAiResultProps {
 }
 
 export default function MusicAiResult({
-                                          videos, aiPlans, isGeneratingPlans, inferredTheme, planPrompt,
+                                          aiPlans, isGeneratingPlans, inferredTheme, planPrompt,
                                           genre, setGenre, vocalType, setVocalType, mainLang, setMainLang, subLangs, setSubLangs,
                                           onGeneratePlans, onGenerateLyrics
                                       }: MusicAiResultProps) {
@@ -55,8 +53,6 @@ export default function MusicAiResult({
     const openPromptViewer = (title: string, content: string) => {
         setPromptModal({ isOpen: true, title, content });
     };
-
-    if (videos.length === 0) return null;
 
     const handleGenerateClick = (index: number, title: string, musicStyle: string) => {
         setActiveDetailIndex(index);

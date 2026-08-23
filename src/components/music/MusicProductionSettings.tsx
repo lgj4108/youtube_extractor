@@ -85,7 +85,7 @@ export default function MusicProductionSettings({
             )}
 
             <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">🎶 2단계: 프로덕션 세부 설정</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">🎛️ 프로덕션 세부 설정 <span className="text-xs font-normal text-slate-400">(선택)</span></h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
                     <div>
@@ -129,7 +129,7 @@ export default function MusicProductionSettings({
                 </div>
 
                 <button onClick={onGeneratePlans} disabled={isGeneratingPlans} className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white text-sm rounded-xl font-bold shadow-md disabled:opacity-50 transition-transform active:scale-[0.98]">
-                    {isGeneratingPlans ? '✨ AI 곡 기획안 추출 중...' : '✨ 3단계: 이 설정으로 AI 기획안 3개 추출'}
+                    {isGeneratingPlans ? '✨ AI 곡 기획안 생성 중...' : '✨ 이 설정으로 기획안 3개 다시 만들기'}
                 </button>
             </div>
         </>

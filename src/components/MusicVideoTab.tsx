@@ -39,8 +39,7 @@ export default function MusicVideoTab() {
         }
     };
 
-    const handleFetchYoutube = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const handleFetchYoutube = async () => {
         if (!keyword.trim()) return;
 
         setLoading(true); setError(''); setAiPlans([]); setInferredTheme(''); setPlanPrompt(''); setVideos([]);
@@ -57,16 +56,20 @@ export default function MusicVideoTab() {
         }
     };
 
-    const handleGenerateAiPlans = async () => {
+    const handleGenerateAiPlans = async (youtubeData: YouTubeVideo[] = videos) => {
+        if (!keyword.trim()) {
+            setError('만들고 싶은 음악의 키워드를 먼저 입력해주세요.');
+            return;
+        }
         if (!apiKey) { setIsSettingsOpen(true); return; }
-        setIsGeneratingPlans(true); setAiPlans([]); setPlanPrompt('');
+        setIsGeneratingPlans(true); setAiPlans([]); setPlanPrompt(''); setError('');
 
         const customPrompt = localStorage.getItem('custom_plan_prompt') || '';
 
         try {
             const data = await fetchJson<{ plans?: MusicAiPlan[]; inferredTheme?: string; usedPrompt?: string }>('/api/music-plan', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, apiKey, youtubeData: videos, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
+                body: JSON.stringify({ provider: aiProvider, apiKey, creativeKeyword: keyword.trim(), youtubeData, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
             });
 
             setAiPlans(data.plans || []);
@@ -78,6 +81,13 @@ export default function MusicVideoTab() {
         } finally {
             setIsGeneratingPlans(false);
         }
+    };
+
+    const handleDirectGenerate = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setVideos([]);
+        setInferredTheme('');
+        void handleGenerateAiPlans([]);
     };
 
     const handleGenerateLyrics = async (index: number, title: string, musicStyle: string) => {
@@ -138,13 +148,13 @@ export default function MusicVideoTab() {
             <MusicSearchForm
                 keyword={keyword} setKeyword={setKeyword}
                 region={region} setRegion={setRegion}
-                loading={loading} onSubmit={handleFetchYoutube}
+                loading={loading} isGeneratingPlans={isGeneratingPlans}
+                onDirectGenerate={handleDirectGenerate} onTrendSearch={handleFetchYoutube}
             />
 
             {error && <div className="p-5 mb-8 bg-red-50 text-red-600 rounded-xl font-medium text-center shadow-sm border border-red-100">⚠️ {error}</div>}
 
             <MusicAiResult
-                videos={videos}
                 aiPlans={aiPlans}
                 isGeneratingPlans={isGeneratingPlans}
                 inferredTheme={inferredTheme}
@@ -153,7 +163,7 @@ export default function MusicVideoTab() {
                 vocalType={vocalType} setVocalType={setVocalType}
                 mainLang={mainLang} setMainLang={setMainLang}
                 subLangs={subLangs} setSubLangs={setSubLangs}
-                onGeneratePlans={handleGenerateAiPlans}
+                onGeneratePlans={() => void handleGenerateAiPlans()}
                 onGenerateLyrics={handleGenerateLyrics}
             />
         </div>
