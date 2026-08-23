@@ -20,6 +20,27 @@ export async function POST(request: Request) {
         const fullSubLangs = subLangs.map((l: string) => langMap[l] || l);
         const usesKorean = mainLang === 'KR' || subLangs.includes('KR');
 
+        const vocalDirections: Record<string, string> = {
+            'Female Solo': `여성 솔로가 필수다. 모든 노래 파트에 [Female Vocal]을 명시하고, 필요한 구간에서만 [Whispers], [Falsetto], [Rap], [Backing Vocals] 중 하나를 보조 태그로 추가해. [Male Vocal]이나 [Duet]을 사용하지 마.`,
+            'Male Solo': `남성 솔로가 필수다. 모든 노래 파트에 [Male Vocal]을 명시하고, 필요한 구간에서만 [Whispers], [Falsetto], [Rap], [Backing Vocals] 중 하나를 보조 태그로 추가해. [Female Vocal]이나 [Duet]을 사용하지 마.`,
+            'Duet': `혼성 듀엣이 필수다. 솔로 파트는 [Female Vocal]과 [Male Vocal]로 명확히 나누고, 함께 부르는 후렴이나 엔딩에는 [Duet]을 명시해. 두 화자의 관점과 가사를 구분하고 최소 한 구간씩 공평하게 배정해.`,
+            'Idol Group': `아이돌 그룹 보컬이 필수다. 곡에 맞는 그룹 성별 구성을 먼저 결정한 뒤 [Lead Vocal], [Group Vocals], [Rap], [Backing Vocals]로 파트를 분담해. 후렴에는 [Group Vocals]을 명시하고, 한 명의 솔로처럼만 구성하지 마.`,
+            'Auto': `장르, 음악 스타일, 서사에 가장 맞는 솔로·듀엣·그룹 구성을 하나 결정해. 첫 노래 파트부터 [Female Vocal], [Male Vocal], [Duet], [Lead Vocal], [Group Vocals] 중 실제 선택 결과를 명시하고, [Auto]나 [AI Vocal]이라는 태그는 출력하지 마.`,
+        };
+        const vocalDirection = vocalDirections[vocalType] || vocalDirections.Auto;
+
+        const lyricsExamples: Record<string, string[]> = {
+            'Female Solo': ['[Intro]', '[Instrumental]', '', '[Verse 1]', '[Female Vocal]', 'short singable lyric line', '', '[Chorus]', '[Female Vocal] [Falsetto]', 'repeatable hook line', '', '[Outro]', '[Female Vocal]', 'closing lyric line', '[End]'],
+            'Male Solo': ['[Intro]', '[Instrumental]', '', '[Verse 1]', '[Male Vocal]', 'short singable lyric line', '', '[Chorus]', '[Male Vocal] [Falsetto]', 'repeatable hook line', '', '[Outro]', '[Male Vocal]', 'closing lyric line', '[End]'],
+            'Duet': ['[Intro]', '[Instrumental]', '', '[Verse 1]', '[Female Vocal]', 'first voice lyric line', '', '[Verse 2]', '[Male Vocal]', 'second voice lyric line', '', '[Chorus]', '[Duet]', 'shared repeatable hook line', '', '[Outro]', '[Duet]', 'shared closing lyric line', '[End]'],
+            'Idol Group': ['[Intro]', '[Instrumental]', '', '[Verse 1]', '[Lead Vocal]', 'lead lyric line', '', '[Pre-Chorus]', '[Rap]', 'short rap line', '', '[Chorus]', '[Group Vocals] [Backing Vocals]', 'shared repeatable hook line', '', '[Outro]', '[Group Vocals]', 'closing lyric line', '[End]'],
+            'Auto': ['[Intro]', '[Instrumental]', '', '[Verse 1]', '[Female Vocal]', 'example lyric after choosing the fitting vocal', '', '[Chorus]', '[Female Vocal]', 'repeatable hook line', '', '[Outro]', '[Female Vocal]', 'closing lyric line', '[End]'],
+        };
+        const responseExample = JSON.stringify({
+            lyrics: lyricsExamples[vocalType] || lyricsExamples.Auto,
+            scenePrompts: ['English visual prompt for a major song section'],
+        }, null, 4);
+
         const koreanPronunciationGuide = usesKorean
             ? `[한국어 발음 규칙]
         - 한국어로 부르는 모든 줄은 소리 내어 읽을 수 있는 자연스러운 한글 단어와 어순으로 써. 뜻은 통하지만 발음할 수 없는 기호 조합, 코드형 문자열, 불완전한 음절은 가사에 넣지 마.
@@ -39,7 +60,12 @@ export async function POST(request: Request) {
         - 곡 제목/주제: "${keyword}"
         - 음악 스타일: ${musicStyle || '지정되지 않음'}
         - 장르: ${genre}
-        - 타겟 보컬 타입: ${vocalType}
+        - 사용자가 선택한 보컬 구성(필수 적용): ${vocalType}
+
+        [보컬 설계 — 필수]
+        - ${vocalDirection}
+        - 선택된 보컬 구성은 단순 참고값이 아니라 필수 제약이야. 특별 지시로 음색·창법을 더 구체화할 수는 있지만 선택된 성별·인원 구성과 모순되게 바꾸지 마.
+        - 가사가 있는 각 섹션에는 구조 태그 다음 줄에 담당 보컬 태그를 넣어, 누가 부르는지 가사만 보아도 명확하게 만들어.
         
         [창작 방향]
         - 사용자의 제목, 스타일, 특별 지시를 가장 중요한 기준으로 삼아.
@@ -50,37 +76,26 @@ export async function POST(request: Request) {
         - 각 가사 블록의 첫 줄에는 [Intro], [Verse 1], [Pre-Chorus], [Chorus], [Hook], [Bridge], [Break], [Instrumental], [Outro]처럼 Suno가 해석하기 쉬운 표준 영어 대괄호 태그를 배치해.
         - [Verse]는 이야기를 전개하고, [Chorus]는 가장 기억에 남는 핵심 가사를 같은 형태로 반복해. [Bridge]는 후렴과 다른 가사 톤으로 전환하며, [Outro]는 감정을 정리해.
         - 곡을 명확히 끝내야 할 때는 마지막에 [End]를 단독 줄로 넣어. 자연스럽게 잦아드는 엔딩에만 [Outro] 뒤 [Fade Out]을 사용하고 그 다음 [End]로 마쳐.
-        - 보컬 구분이나 연주가 실제로 필요한 경우에만 [Female Singer], [Male Singer], [Duet], [Instrumental], [Solo: Electric Guitar] 같은 보조 태그를 섹션 태그 옆이나 바로 다음 줄에 추가해. 선택한 타겟 보컬 타입과 모순되면 안 돼.
-        - 한 위치에 메타태그를 과도하게 쌓지 말고 핵심 태그 1~2개만 사용해. 메타태그는 제어 힌트일 뿐이므로 곡에 불필요한 태그를 억지로 넣지 마.
-        - (whispered), (spoken), (belting), (humming)처럼 짧은 보컬·퍼포먼스 지시나 실제로 부를 애드리브만 영어 소괄호로 표시해. 악기 목록, 줄거리, 카메라 지시, 장면 묘사는 가사 태그에 넣지 마.
+        - 보컬 태그는 [Female Vocal], [Male Vocal], [Duet], [Lead Vocal], [Group Vocals]을 기본으로 하고, 필요한 순간에만 [Rap], [Whispers], [Falsetto], [Choir], [Backing Vocals] 같은 연출 태그를 하나 더 결합해.
+        - 가사가 없는 [Intro], [Instrumental], [Guitar Solo], [Piano Solo]는 연주 구간으로 사용해. 같은 태그 아래 가사를 두면 보컬 구간으로 해석될 수 있으므로 의도에 맞춰 구분해.
+        - [Crescendo], [Decrescendo], [Accelerando] 같은 다이내믹 태그와 [Rain SFX], [Thunder SFX], [Applause] 같은 효과음 태그는 실제로 그 변화나 소리가 시작될 정확한 위치에만 넣어. 음악적으로 불필요하면 사용하지 마.
+        - 한 위치에 메타태그를 과도하게 쌓지 말고 구조 태그와 핵심 연출 태그를 합쳐 2~3개 이내로 사용해. 메타태그는 제어 힌트일 뿐이므로 곡에 불필요한 태그를 억지로 넣지 마.
+        - (whispered), (spoken), (belting), (humming)처럼 실제로 부를 애드리브나 미세한 퍼포먼스 지시는 영어 소괄호로 표시해. 음악적 지시가 아닌 줄거리, 카메라 지시, 시각적 장면 묘사는 가사 태그에 넣지 마.
         - 각 가사 줄은 한 번에 부르기 좋은 짧은 구절로 써서 자막으로도 읽기 쉽게 하고, 지나치게 긴 문장과 설명문을 피해야 해. 후렴과 훅은 곡의 정체성을 위해 자연스럽게 반복할 수 있어.
         - 추상적인 감정만 나열하지 말고 장소, 사물, 빛과 색, 움직임처럼 장면이 떠오르는 구체적인 이미지를 가사에 자연스럽게 활용해.
         - 특정 소재나 악기를 임의로 금지하지 마. 사용자 특별 지시가 위 기본 원칙과 충돌하면 사용자의 지시를 우선해.
         - scenePrompts는 가사와 분리된 영어 시각 프롬프트로, 주요 파트의 장면만 제안해. 모든 가사 줄과 1:1로 맞출 필요는 없어.
         - 파싱을 위해 lyrics와 scenePrompts가 문자열 배열인 아래 JSON 구조를 유지해.
 
-        {
-            "lyrics": [
-                "[Intro]",
-                "(humming)",
-                "",
-                "[Verse 1]",
-                "short singable lyric line",
-                "",
-                "[Chorus]",
-                "repeatable hook line",
-                "",
-                "[Outro]",
-                "closing lyric line",
-                "[End]"
-            ],
-            "scenePrompts": [
-                "English visual prompt for a major song section"
-            ]
-        }
+        아래 예시는 현재 보컬 구성(${vocalType})을 반영한 형식 예시야. 예시의 가사 문구는 복사하지 말고 실제 곡에 맞게 새로 작성해.
+        ${responseExample}
         `;
 
-        const { text } = await generateText({ model: aiModel, prompt });
+        const { text } = await generateText({
+            model: aiModel,
+            system: `Write original Suno-ready lyrics as valid JSON. The selected vocal configuration (${vocalType}) is mandatory: identify the singer for every sung section with matching English vocal meta tags. Keep Style of Music, lyrics, and visual scene prompts separate.`,
+            prompt,
+        });
         const parsedData = parseJsonObject(text);
         const lyrics = stringArray(parsedData.lyrics);
         const scenePrompts = stringArray(parsedData.scenePrompts);
