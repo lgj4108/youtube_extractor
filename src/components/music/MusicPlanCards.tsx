@@ -47,9 +47,6 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
             '',
             'Suno Creative Sliders 추천:',
             formatSunoCreativeSettings({ weirdness: plan.weirdness, styleInfluence: plan.styleInfluence, reason: plan.sunoSettingsReason }),
-            '',
-            '앨범 커버 / 썸네일 프롬프트:',
-            plan.midjourneyPrompt,
         ].join('\n');
 
         try {
@@ -69,7 +66,7 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
                         <button
                             onClick={(e) => void handleCopyPlan(e, plan, index)}
                             className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                            title="제목, Suno 스타일, 커버 프롬프트를 한 번에 복사"
+                            title="제목, Suno 스타일, 추천 설정을 한 번에 복사"
                         >
                             📦 기획 전체 복사
                         </button>
@@ -118,18 +115,6 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
                             reason={plan.sunoSettingsReason}
                             showToast={showToast}
                         />
-                    </div>
-
-                    <div className="mb-4 flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 p-3">
-                        <div className="flex justify-between items-center mb-2">
-                            <p className="text-[10px] font-bold text-slate-500">🖼️ 앨범 커버 / 썸네일</p>
-                            <button onClick={(e) => { e.stopPropagation(); void copyWithToast(plan.midjourneyPrompt, `트랙 ${index + 1}의 커버 프롬프트가 복사되었습니다.`); }} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 transition-colors font-bold">
-                                복사
-                            </button>
-                        </div>
-                        <p onClick={() => { void copyWithToast(plan.midjourneyPrompt, `트랙 ${index + 1}의 커버 프롬프트가 복사되었습니다.`); }} className="text-[11px] text-slate-600 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="클릭 복사">
-                            {plan.midjourneyPrompt}
-                        </p>
                     </div>
 
                     {plan.history?.length ? (

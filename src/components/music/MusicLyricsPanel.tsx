@@ -8,11 +8,14 @@ interface MusicLyricsPanelProps {
     activePlan: MusicAiPlan;
     showToast: (msg: string) => void;
     onOpenPrompt: (title: string, content: string) => void;
+    onSaveLyrics: (sourceVersionIndex: number, lyrics: string) => void;
 }
 
-export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }: MusicLyricsPanelProps) {
+export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt, onSaveLyrics }: MusicLyricsPanelProps) {
     const history = activePlan?.history || [];
     const [viewIndex, setViewIndex] = useState<number>(Math.max(0, history.length - 1));
+    const [isEditing, setIsEditing] = useState(false);
+    const [editDraft, setEditDraft] = useState('');
 
     const copyWithToast = async (text: string, successMessage: string) => {
         try {
@@ -27,7 +30,7 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
         return (
             <div className="mt-4 bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-200 dark:border-indigo-900/50 animate-fadeIn flex flex-col items-center justify-center py-20">
                 <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-                <p className="text-sm font-bold text-slate-600 dark:text-slate-400 animate-pulse">상업용 가사와 씬(Scene) 프롬프트를 창작 중입니다...</p>
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-400 animate-pulse">Suno용 가사를 창작 중입니다...</p>
             </div>
         );
     }
@@ -38,6 +41,37 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
     const currentView = history[safeIndex];
 
     if (!currentView) return null;
+
+    const startEditing = () => {
+        setEditDraft(currentView.lyrics);
+        setIsEditing(true);
+    };
+
+    const cancelEditing = () => {
+        setEditDraft('');
+        setIsEditing(false);
+    };
+
+    const saveEditing = () => {
+        if (!editDraft.trim()) {
+            showToast('가사는 비워둘 수 없습니다.');
+            return;
+        }
+        if (editDraft === currentView.lyrics) {
+            showToast('수정된 내용이 없습니다.');
+            return;
+        }
+        onSaveLyrics(safeIndex, editDraft);
+        setIsEditing(false);
+        showToast(`버전 ${safeIndex + 1}을 바탕으로 수정본을 저장했습니다.`);
+    };
+
+    const selectVersion = (index: number) => {
+        if (isEditing && editDraft !== currentView.lyrics && !window.confirm('저장하지 않은 수정 내용이 있습니다. 버전을 이동하면 변경사항이 사라집니다. 이동하시겠습니까?')) return;
+        setIsEditing(false);
+        setEditDraft('');
+        setViewIndex(index);
+    };
 
     const downloadPackage = () => {
         const content = [
@@ -51,9 +85,6 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
             '',
             '## Lyrics',
             currentView.lyrics,
-            '',
-            '## Scene prompts',
-            ...(currentView.scenePrompts || []).map((scene, index) => `${index + 1}. ${scene}`),
         ].join('\n');
         const url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }));
         const anchor = document.createElement('a');
@@ -61,7 +92,7 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
         anchor.download = `${activePlan.title.replace(/[\\/:*?"<>|]/g, '_') || 'music-plan'}.md`;
         anchor.click();
         URL.revokeObjectURL(url);
-        showToast('가사와 스타일, 씬 프롬프트를 파일로 저장했습니다.');
+        showToast('가사와 스타일을 파일로 저장했습니다.');
     };
 
     return (
@@ -83,10 +114,10 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                     {history.map((_, idx) => (
                         <button
                             key={idx}
-                            onClick={() => setViewIndex(idx)}
+                            onClick={() => selectVersion(idx)}
                             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${safeIndex === idx ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                         >
-                            버전 {idx + 1} {idx === history.length - 1 && '(최신)'}
+                            버전 {idx + 1} {history[idx]?.editedFromVersion ? `(수정본${idx === history.length - 1 ? ' · 최신' : ''})` : idx === history.length - 1 ? '(최신)' : ''}
                         </button>
                     ))}
                 </div>
@@ -107,7 +138,7 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                             </button>
                             <span className="text-sm text-indigo-500 font-normal ml-2">- 버전 {safeIndex + 1}</span>
                         </h3>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap justify-end gap-2">
                             {currentView.usedPrompt && (
                                 <button onClick={() => onOpenPrompt(`${activePlan.title} (버전 ${safeIndex + 1}) 가사 프롬프트`, currentView.usedPrompt!)} className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-2 rounded-lg font-bold transition-colors">
                                     👀 프롬프트 보기
@@ -116,14 +147,42 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                             <button onClick={() => {void copyWithToast(currentView.lyrics, `버전 ${safeIndex + 1} 가사가 복사되었습니다.`);}} className="text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/50 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 px-4 py-2 rounded-lg font-bold transition-colors">
                                 📋 현재 가사 복사
                             </button>
+                            {!isEditing && (
+                                <button onClick={startEditing} className="rounded-lg bg-amber-100 px-4 py-2 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-300">
+                                    ✏️ 일부 수정
+                                </button>
+                            )}
                             <button onClick={downloadPackage} className="rounded-lg bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300">
                                 ↓ 결과 묶음 저장
                             </button>
                         </div>
                     </div>
-                    <div className="flex-1 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-sans leading-loose bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-100 dark:border-slate-700 h-full overflow-y-auto">
-                        {currentView.lyrics}
-                    </div>
+                    {isEditing ? (
+                        <div className="flex flex-1 flex-col gap-3">
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                                필요한 줄만 수정하세요. 저장하면 원본을 유지한 채 새로운 수정본 버전이 만들어집니다.
+                            </div>
+                            <textarea
+                                value={editDraft}
+                                onChange={(event) => setEditDraft(event.target.value)}
+                                className="min-h-[520px] flex-1 resize-y rounded-xl border border-amber-300 bg-white p-6 font-sans text-sm leading-loose text-slate-800 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:border-amber-800 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-amber-900"
+                                aria-label={`버전 ${safeIndex + 1} 가사 수정`}
+                                spellCheck={false}
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button onClick={cancelEditing} className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                                    취소
+                                </button>
+                                <button onClick={saveEditing} className="rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600">
+                                    수정본 저장
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex-1 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-sans leading-loose bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl border border-slate-100 dark:border-slate-700 h-full overflow-y-auto">
+                            {currentView.lyrics}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 flex flex-col gap-5 h-full">
@@ -146,19 +205,6 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 flex-1 min-h-[400px]">
-                        <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 shrink-0">
-                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎬 뮤비 씬(Scene) 프롬프트</h4>
-                            <button onClick={() => {const all = currentView.scenePrompts?.join('\n\n') || ''; void copyWithToast(all, `버전 ${safeIndex + 1} 씬이 일괄 복사되었습니다.`);}} className="text-[10px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300 font-bold transition-colors">일괄 복사</button>
-                        </div>
-                        <div className="flex flex-col gap-2 h-full overflow-y-auto pr-1">
-                            {currentView.scenePrompts?.map((p, idx) => (
-                                <div key={idx} onClick={() => {void copyWithToast(p, `Scene ${idx + 1} 프롬프트가 복사되었습니다.`);}} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400 break-words select-all hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer" title="클릭 복사">
-                                    <span className="inline-block bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded text-[10px] mb-1">Scene {idx + 1}</span><br/>{p}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

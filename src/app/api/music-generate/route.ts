@@ -38,7 +38,6 @@ export async function POST(request: Request) {
         };
         const responseExample = JSON.stringify({
             lyrics: lyricsExamples[vocalType] || lyricsExamples.Auto,
-            scenePrompts: ['English visual prompt for a major song section'],
         }, null, 4);
 
         const koreanPronunciationGuide = usesKorean
@@ -95,8 +94,8 @@ export async function POST(request: Request) {
         - 각 가사 줄은 한 번에 부르기 좋은 짧은 구절로 써서 자막으로도 읽기 쉽게 하고, 지나치게 긴 문장과 설명문을 피해야 해. 후렴과 훅은 곡의 정체성을 위해 자연스럽게 반복할 수 있어.
         - 추상적인 감정만 나열하지 말고 장소, 사물, 빛과 색, 움직임처럼 장면이 떠오르는 구체적인 이미지를 가사에 자연스럽게 활용해.
         - 특정 소재나 악기를 임의로 금지하지 마. 사용자 특별 지시가 위 기본 원칙과 충돌하면 사용자의 지시를 우선해.
-        - scenePrompts는 가사와 분리된 영어 시각 프롬프트로, 주요 파트의 장면만 제안해. 모든 가사 줄과 1:1로 맞출 필요는 없어.
-        - 파싱을 위해 lyrics와 scenePrompts가 문자열 배열인 아래 JSON 구조를 유지해.
+        - 영상, 앨범 커버, 이미지 제작용 프롬프트는 생성하지 마.
+        - 파싱을 위해 lyrics가 문자열 배열인 아래 JSON 구조를 유지해.
 
         아래 예시는 현재 보컬 구성(${vocalType})을 반영한 형식 예시야. 예시의 가사 문구는 복사하지 말고 실제 곡에 맞게 새로 작성해.
         ${responseExample}
@@ -104,17 +103,15 @@ export async function POST(request: Request) {
 
         const { text } = await generateText({
             model: aiModel,
-            system: `Write original Suno-ready lyrics as valid JSON. The selected vocal configuration (${vocalType}) is mandatory: identify the singer for every sung section with matching English vocal meta tags. When the concept benefits from it, design an intentional soundstage, layered chorus vocals, recurring processed motifs, and section-to-section dynamic contrast using concise English production tags. Keep Style of Music, sung lyrics, production directions, and visual scene prompts clearly separated. Never copy lyrics or distinctive phrases from a reference work.`,
+            system: `Write original Suno-ready lyrics as valid JSON. The selected vocal configuration (${vocalType}) is mandatory: identify the singer for every sung section with matching English vocal meta tags. When the concept benefits from it, design an intentional soundstage, layered chorus vocals, recurring processed motifs, and section-to-section dynamic contrast using concise English production tags. Return lyrics only and do not generate image, video, scene, album-cover, or thumbnail prompts. Never copy lyrics or distinctive phrases from a reference work.`,
             prompt,
         });
         const parsedData = parseJsonObject(text);
         const lyrics = stringArray(parsedData.lyrics);
-        const scenePrompts = stringArray(parsedData.scenePrompts);
         if (lyrics.length === 0) throw new Error('AI가 유효한 가사를 반환하지 않았습니다.');
 
         return NextResponse.json({
             lyrics,
-            scenePrompts,
             usedPrompt: prompt
         });
 

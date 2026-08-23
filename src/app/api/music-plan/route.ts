@@ -86,7 +86,6 @@ export async function POST(request: Request) {
         - Weirdness는 50을 균형 기준으로 삼아 대중적이고 안정적인 곡은 30~50, 적당히 개성적인 곡은 50~65, 실험·글리치·예측 불가능성이 핵심인 곡은 65~85 범위에서 선택해. 특별한 이유 없이 0이나 100을 쓰지 마.
         - Style Influence는 스타일 프롬프트를 충실히 재현해야 할수록 75~90, 장르 혼합과 우연성을 더 허용할수록 55~75 범위에서 선택해. 구체적인 사용자 지시가 많을수록 높은 값을 우선해.
         - sunoSettingsReason은 두 추천값의 이유를 ${fullMainLang}로 한 문장에 설명해.
-        - midjourneyPrompt는 앨범 커버 제작에 쓸 수 있는 영어 시각 프롬프트로 작성해.
         - 파싱을 위해 아래 JSON 구조를 유지해.
         
         {
@@ -98,8 +97,7 @@ export async function POST(request: Request) {
                     "musicStyleKor": "(${fullMainLang}) 스타일 설명",
                     "weirdness": 55,
                     "styleInfluence": 80,
-                    "sunoSettingsReason": "(${fullMainLang}) 추천값을 선택한 이유",
-                    "midjourneyPrompt": "English album-cover prompt"
+                    "sunoSettingsReason": "(${fullMainLang}) 추천값을 선택한 이유"
                 }
             ]
         }

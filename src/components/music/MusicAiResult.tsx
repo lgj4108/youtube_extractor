@@ -7,8 +7,8 @@ import MusicLyricsPanel from './MusicLyricsPanel';
 
 export interface LyricsVersion {
     lyrics: string;
-    scenePrompts: string[];
     usedPrompt?: string;
+    editedFromVersion?: number;
 }
 
 export interface MusicAiPlan {
@@ -18,9 +18,7 @@ export interface MusicAiPlan {
     weirdness?: number;
     styleInfluence?: number;
     sunoSettingsReason?: string;
-    midjourneyPrompt: string;
     lyrics?: string;
-    scenePrompts?: string[];
     history?: LyricsVersion[];
     isGeneratingLyrics?: boolean;
 }
@@ -36,12 +34,13 @@ interface MusicAiResultProps {
     subLangs: string[]; setSubLangs: (val: string[]) => void;
     onGeneratePlans: () => void;
     onGenerateLyrics: (index: number, title: string, musicStyle: string) => void;
+    onSaveLyrics: (index: number, sourceVersionIndex: number, lyrics: string) => void;
 }
 
 export default function MusicAiResult({
                                           aiPlans, isGeneratingPlans, inferredTheme, planPrompt,
                                           genre, setGenre, vocalType, setVocalType, mainLang, setMainLang, subLangs, setSubLangs,
-                                          onGeneratePlans, onGenerateLyrics
+                                          onGeneratePlans, onGenerateLyrics, onSaveLyrics
                                       }: MusicAiResultProps) {
 
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(null);
@@ -139,6 +138,7 @@ export default function MusicAiResult({
                     activePlan={activePlan}
                     showToast={showToast}
                     onOpenPrompt={openPromptViewer}
+                    onSaveLyrics={(sourceVersionIndex, lyrics) => onSaveLyrics(activeDetailIndex, sourceVersionIndex, lyrics)}
                 />
             )}
         </div>

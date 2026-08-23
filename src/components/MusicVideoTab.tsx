@@ -104,19 +104,18 @@ export default function MusicVideoTab() {
         const customPrompt = localStorage.getItem('custom_lyrics_prompt') || '';
 
         try {
-            const data = await fetchJson<{ lyrics?: string[] | string; scenePrompts?: string[]; usedPrompt?: string }>('/api/music-generate', {
+            const data = await fetchJson<{ lyrics?: string[] | string; usedPrompt?: string }>('/api/music-generate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ provider: aiProvider, model: aiModel, apiKey, keyword: title, musicStyle, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
             });
 
             const generatedLyrics = Array.isArray(data.lyrics) ? data.lyrics.join('\n') : (data.lyrics || '결과를 받아오지 못했습니다.');
-            const scenePrompts = data.scenePrompts || [];
 
             setAiPlans(prev => prev.map((plan, i) => {
                 if (i === index) {
-                    const newVersion = { lyrics: generatedLyrics, scenePrompts, usedPrompt: data.usedPrompt };
+                    const newVersion = { lyrics: generatedLyrics, usedPrompt: data.usedPrompt };
                     const updatedHistory = [...(plan.history || []), newVersion];
-                    return { ...plan, lyrics: generatedLyrics, scenePrompts, history: updatedHistory, isGeneratingLyrics: false };
+                    return { ...plan, lyrics: generatedLyrics, history: updatedHistory, isGeneratingLyrics: false };
                 }
                 return plan;
             }));
@@ -125,6 +124,23 @@ export default function MusicVideoTab() {
             setError(`가사 생성 오류: ${getErrorMessage(requestError)}`);
             setAiPlans(prev => prev.map((plan, i) => i === index ? { ...plan, isGeneratingLyrics: false } : plan));
         }
+    };
+
+    const handleSaveLyrics = (index: number, sourceVersionIndex: number, lyrics: string) => {
+        if (!lyrics.trim()) {
+            setError('가사는 비워둘 수 없습니다.');
+            return;
+        }
+
+        setError('');
+        setAiPlans(prev => prev.map((plan, planIndex) => {
+            if (planIndex !== index) return plan;
+            const history = plan.history || [];
+            const source = history[sourceVersionIndex];
+            if (!source || source.lyrics === lyrics) return plan;
+            const editedVersion = { lyrics, editedFromVersion: sourceVersionIndex + 1 };
+            return { ...plan, lyrics, history: [...history, editedVersion] };
+        }));
     };
 
     return (
@@ -172,6 +188,7 @@ export default function MusicVideoTab() {
                 subLangs={subLangs} setSubLangs={setSubLangs}
                 onGeneratePlans={() => void handleGenerateAiPlans()}
                 onGenerateLyrics={handleGenerateLyrics}
+                onSaveLyrics={handleSaveLyrics}
             />
         </div>
     );
