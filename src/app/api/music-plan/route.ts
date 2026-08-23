@@ -8,6 +8,17 @@ interface MusicPlanningSource {
     tags?: unknown;
 }
 
+function creativeSliderValue(value: unknown, fallback: number) {
+    const numeric = typeof value === 'number'
+        ? value
+        : typeof value === 'string'
+            ? Number.parseFloat(value)
+            : Number.NaN;
+    if (!Number.isFinite(numeric)) return fallback;
+    const clamped = Math.min(100, Math.max(0, numeric));
+    return Math.round(clamped / 5) * 5;
+}
+
 export async function POST(request: Request) {
     try {
         const body = await readJsonObject(request);
@@ -69,6 +80,10 @@ export async function POST(request: Request) {
         - vocal에는 보컬 타입, 음색, 전달 방식, 마이킹 중 곡에 중요한 것만 담고, tempo에는 숫자 BPM과 체감 속도를 담아.
         - 가사, 장면 묘사, 곡의 줄거리, 목표 재생 시간을 musicStyle에 섞지 마. 원하지 않는 요소도 사용자가 명시한 경우에만 마지막에 exclusions: "..." 범주로 덧붙여.
         - musicStyleKor은 musicStyle의 음악 설계를 ${fullMainLang}로 간단히 설명해.
+        - 각 콘셉트에 Suno Creative Sliders 추천값인 weirdness와 styleInfluence를 0~100 사이의 5 단위 정수로 제안해. 이 값들은 musicStyle 문자열 안에 넣지 말고 별도 필드로 출력해.
+        - Weirdness는 50을 균형 기준으로 삼아 대중적이고 안정적인 곡은 30~50, 적당히 개성적인 곡은 50~65, 실험·글리치·예측 불가능성이 핵심인 곡은 65~85 범위에서 선택해. 특별한 이유 없이 0이나 100을 쓰지 마.
+        - Style Influence는 스타일 프롬프트를 충실히 재현해야 할수록 75~90, 장르 혼합과 우연성을 더 허용할수록 55~75 범위에서 선택해. 구체적인 사용자 지시가 많을수록 높은 값을 우선해.
+        - sunoSettingsReason은 두 추천값의 이유를 ${fullMainLang}로 한 문장에 설명해.
         - midjourneyPrompt는 앨범 커버 제작에 쓸 수 있는 영어 시각 프롬프트로 작성해.
         - 파싱을 위해 아래 JSON 구조를 유지해.
         
@@ -79,6 +94,9 @@ export async function POST(request: Request) {
                     "title": "(${fullMainLang} 언어) 곡 제목",
                     "musicStyle": "genre: \\"subgenre, era or texture\\"; vocal: \\"voice and delivery\\"; instrumentation: \\"instrument and playing style\\"; style tags: \\"audible qualities\\"; production: \\"recording and dynamics\\"; tempo: \\"numeric BPM, tempo feel\\"",
                     "musicStyleKor": "(${fullMainLang}) 스타일 설명",
+                    "weirdness": 55,
+                    "styleInfluence": 80,
+                    "sunoSettingsReason": "(${fullMainLang}) 추천값을 선택한 이유",
                     "midjourneyPrompt": "English album-cover prompt"
                 }
             ]
@@ -94,7 +112,15 @@ export async function POST(request: Request) {
 
         const parsedData = parseJsonObject(text);
         const plans = Array.isArray(parsedData.plans)
-            ? parsedData.plans.filter((plan) => plan && typeof plan === 'object').slice(0, 3)
+            ? parsedData.plans.filter((plan) => plan && typeof plan === 'object').slice(0, 3).map((plan) => {
+                const result = plan as Record<string, unknown>;
+                return {
+                    ...result,
+                    weirdness: creativeSliderValue(result.weirdness, 50),
+                    styleInfluence: creativeSliderValue(result.styleInfluence, 80),
+                    sunoSettingsReason: stringValue(result.sunoSettingsReason) || '균형 잡힌 창의성과 스타일 재현을 위한 기본 추천값입니다.',
+                };
+            })
             : [];
         if (plans.length === 0) throw new Error('AI가 유효한 음악 기획안을 반환하지 않았습니다.');
 

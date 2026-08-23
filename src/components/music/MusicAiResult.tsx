@@ -15,6 +15,9 @@ export interface MusicAiPlan {
     title: string;
     musicStyle: string;
     musicStyleKor?: string;
+    weirdness?: number;
+    styleInfluence?: number;
+    sunoSettingsReason?: string;
     midjourneyPrompt: string;
     lyrics?: string;
     scenePrompts?: string[];

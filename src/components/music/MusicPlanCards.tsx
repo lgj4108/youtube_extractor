@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { copyText } from '@/lib/http';
 import { MusicAiPlan } from './MusicAiResult';
+import SunoCreativeSettings, { formatSunoCreativeSettings } from './SunoCreativeSettings';
 
 interface MusicPlanCardsProps {
     aiPlans: MusicAiPlan[];
@@ -43,6 +44,9 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
             'Suno Style of Music:',
             plan.musicStyle,
             ...(plan.musicStyleKor ? ['', '스타일 설명:', plan.musicStyleKor] : []),
+            '',
+            'Suno Creative Sliders 추천:',
+            formatSunoCreativeSettings({ weirdness: plan.weirdness, styleInfluence: plan.styleInfluence, reason: plan.sunoSettingsReason }),
             '',
             '앨범 커버 / 썸네일 프롬프트:',
             plan.midjourneyPrompt,
@@ -105,6 +109,15 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
                         <p onClick={() => { void copyWithToast(plan.musicStyle, `트랙 ${index + 1}의 Suno 스타일 프롬프트가 복사되었습니다.`); }} className="text-[11px] text-slate-500 dark:text-slate-400 font-mono break-words cursor-pointer hover:text-indigo-500 transition-colors" title="Suno의 Style of Music 입력란에 붙여넣기">
                             {plan.musicStyle}
                         </p>
+                    </div>
+
+                    <div className="mb-4">
+                        <SunoCreativeSettings
+                            weirdness={plan.weirdness}
+                            styleInfluence={plan.styleInfluence}
+                            reason={plan.sunoSettingsReason}
+                            showToast={showToast}
+                        />
                     </div>
 
                     <div className="mb-4 flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 p-3">

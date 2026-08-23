@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { copyText } from '@/lib/http';
 import { MusicAiPlan } from './MusicAiResult';
+import SunoCreativeSettings, { formatSunoCreativeSettings } from './SunoCreativeSettings';
 
 interface MusicLyricsPanelProps {
     activePlan: MusicAiPlan;
@@ -44,6 +45,9 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
             '',
             '## Music style',
             activePlan.musicStyle,
+            '',
+            '## Suno Creative Sliders',
+            formatSunoCreativeSettings({ weirdness: activePlan.weirdness, styleInfluence: activePlan.styleInfluence, reason: activePlan.sunoSettingsReason }),
             '',
             '## Lyrics',
             currentView.lyrics,
@@ -133,6 +137,12 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt }
                             <div className="text-xs font-mono text-indigo-900 dark:text-indigo-300 select-all cursor-pointer hover:text-indigo-600 transition-colors pt-2 border-t border-indigo-100 dark:border-slate-700" onClick={() => {void copyWithToast(activePlan.musicStyle, 'Suno 스타일 프롬프트가 복사되었습니다.');}} title="Suno의 Style of Music 입력란에 붙여넣기">
                                 {activePlan.musicStyle}
                             </div>
+                            <SunoCreativeSettings
+                                weirdness={activePlan.weirdness}
+                                styleInfluence={activePlan.styleInfluence}
+                                reason={activePlan.sunoSettingsReason}
+                                showToast={showToast}
+                            />
                         </div>
                     </div>
 
