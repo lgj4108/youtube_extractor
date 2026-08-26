@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { google, youtube_v3 } from 'googleapis';
-import { errorResponse, RequestError } from '@/lib/server/api';
+import { RequestError } from '@/lib/server/api';
 
 const IGNORED_WORDS = new Set(['official', 'video', 'youtube', 'shorts', 'music', 'the', 'and', 'feat']);
+const MUSIC_FALLBACK_KEYWORDS = ['새벽 드라이브', '몽환적인 이별', '여름밤', '도시의 비', '자기 확신', '레트로 파티'];
+const GENERAL_FALLBACK_KEYWORDS = ['하루 루틴', '비하인드', '직접 해보기', '전후 비교', '초보 가이드', '솔직 리뷰'];
 
 function createYouTubeClient() {
     const apiKey = process.env.YOUTUBE_API_KEY?.trim();
@@ -15,10 +17,10 @@ function normalizeKeyword(keyword: string) {
 }
 
 export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const categoryId = searchParams.get('categoryId')?.trim();
+    const region = searchParams.get('region')?.trim() || 'KR';
     try {
-        const { searchParams } = new URL(request.url);
-        const categoryId = searchParams.get('categoryId')?.trim();
-        const region = searchParams.get('region')?.trim() || 'KR';
         const params: youtube_v3.Params$Resource$Videos$List = {
             part: ['snippet'],
             chart: 'mostPopular',
@@ -47,6 +49,15 @@ export async function GET(request: Request) {
 
         return NextResponse.json({ keywords });
     } catch (error: unknown) {
-        return errorResponse(error, '트렌드 키워드를 가져오지 못했습니다.', 'YouTube trends API');
+        const status = error && typeof error === 'object'
+            ? Number((error as { status?: unknown; code?: unknown }).status ?? (error as { code?: unknown }).code)
+            : Number.NaN;
+        console.warn('YouTube trends unavailable; using built-in recommendations.', {
+            status: Number.isFinite(status) ? status : undefined,
+        });
+        return NextResponse.json({
+            keywords: categoryId === '10' ? MUSIC_FALLBACK_KEYWORDS : GENERAL_FALLBACK_KEYWORDS,
+            source: 'fallback',
+        });
     }
 }

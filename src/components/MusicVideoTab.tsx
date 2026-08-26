@@ -25,6 +25,7 @@ export default function MusicVideoTab() {
     const [videos, setVideos] = useState<YouTubeVideo[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
+    const [notice, setNotice] = useState<string>('');
 
     const [aiPlans, setAiPlans] = useStoredJson<MusicAiPlan[]>('music_ai_plans', EMPTY_MUSIC_PLANS);
     const [isGeneratingPlans, setIsGeneratingPlans] = useState<boolean>(false);
@@ -39,7 +40,7 @@ export default function MusicVideoTab() {
 
     const handleReset = () => {
         if (window.confirm('현재까지의 모든 기획 및 작업 내역이 초기화됩니다. 처음부터 다시 시작하시겠습니까?')) {
-            setKeyword(''); setVideos([]); setError('');
+            setKeyword(''); setVideos([]); setError(''); setNotice('');
             setAiPlans([]); setInferredTheme(''); setPlanPrompt('');
             setGenre(['K-POP']); setVocalType('Auto'); setMainLang('KR'); setSubLangs([]);
         }
@@ -48,7 +49,7 @@ export default function MusicVideoTab() {
     const handleFetchYoutube = async () => {
         if (!keyword.trim()) return;
 
-        setLoading(true); setError('');
+        setLoading(true); setError(''); setNotice('');
         try {
             const data = await fetchJson<{ rawData?: YouTubeVideo[] }>('/api/planner', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -56,20 +57,24 @@ export default function MusicVideoTab() {
             });
             setVideos(data.rawData || []);
             setAiPlans([]); setInferredTheme(''); setPlanPrompt('');
-        } catch (requestError: unknown) {
-            setError(getErrorMessage(requestError, '검색 중 오류가 발생했습니다.'));
+        } catch {
+            console.warn('유튜브 트렌드 수집에 실패해 키워드 기반 기획으로 전환합니다.');
+            setVideos([]);
+            setNotice('유튜브 API 제한으로 트렌드 데이터는 생략하고, 입력한 키워드만으로 기획을 계속합니다.');
+            await handleGenerateAiPlans([], true);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleGenerateAiPlans = async (youtubeData: YouTubeVideo[] = videos) => {
+    const handleGenerateAiPlans = async (youtubeData: YouTubeVideo[] = videos, preserveNotice = false) => {
         if (!keyword.trim()) {
             setError('만들고 싶은 음악의 키워드를 먼저 입력해주세요.');
             return;
         }
         if (!apiKey) { setIsSettingsOpen(true); return; }
         setIsGeneratingPlans(true); setError('');
+        if (!preserveNotice) setNotice('');
 
         const customPrompt = localStorage.getItem('custom_plan_prompt') || '';
 
@@ -94,6 +99,7 @@ export default function MusicVideoTab() {
         e.preventDefault();
         setVideos([]);
         setInferredTheme('');
+        setNotice('');
         void handleGenerateAiPlans([]);
     };
 
@@ -229,6 +235,7 @@ export default function MusicVideoTab() {
                 onDirectGenerate={handleDirectGenerate} onTrendSearch={handleFetchYoutube}
             />
 
+            {notice && <div className="p-4 mb-6 bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300 rounded-xl text-sm font-medium text-center shadow-sm border border-amber-200 dark:border-amber-900">ℹ️ {notice}</div>}
             {error && <div className="p-5 mb-8 bg-red-50 text-red-600 rounded-xl font-medium text-center shadow-sm border border-red-100">⚠️ {error}</div>}
 
             <MusicAiResult

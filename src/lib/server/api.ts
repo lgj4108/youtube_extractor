@@ -47,6 +47,14 @@ export function errorResponse(error: unknown, fallback: string, logLabel: string
     const isExpected = error instanceof RequestError;
     const status = isExpected ? error.status : 500;
 
-    if (!isExpected) console.error(`${logLabel}:`, error);
+    if (!isExpected) {
+        const safeMessage = message
+            .replace(/AIza[0-9A-Za-z_-]{20,}/g, '[REDACTED_API_KEY]')
+            .replace(/([?&](?:key|api_key|apikey|token)=)[^&\s]+/gi, '$1[REDACTED]');
+        console.error(`${logLabel}:`, {
+            name: error instanceof Error ? error.name : 'UnknownError',
+            message: safeMessage,
+        });
+    }
     return NextResponse.json({ error: isExpected ? message : fallback }, { status });
 }
