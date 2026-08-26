@@ -267,6 +267,17 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt, 
                 </div>
 
                 <div className="flex-1 flex flex-col gap-5 h-full">
+                    {(activePlan.concept || activePlan.lyricBrief) && (
+                        <div className="flex flex-col gap-2 shrink-0">
+                            <div className="border-b border-slate-100 pb-2 dark:border-slate-800">
+                                <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">📝 가사에 적용된 곡 기획</h4>
+                            </div>
+                            <div className="rounded-lg border border-amber-100 bg-amber-50/70 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+                                {activePlan.concept && <p className="text-sm font-bold leading-relaxed text-slate-800 dark:text-slate-200">{activePlan.concept}</p>}
+                                {activePlan.lyricBrief && <p className="mt-2 whitespace-pre-wrap border-t border-amber-100 pt-2 text-xs leading-relaxed text-slate-600 dark:border-amber-900/50 dark:text-slate-400">{activePlan.lyricBrief}</p>}
+                            </div>
+                        </div>
+                    )}
                     <div className="flex flex-col gap-2 shrink-0">
                         <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
                             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">🎸 Suno Style of Music</h4>

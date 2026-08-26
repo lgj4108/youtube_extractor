@@ -40,6 +40,8 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
         e.stopPropagation();
         const packageText = [
             `제목: ${plan.title}`,
+            ...(plan.concept ? ['', '곡 콘셉트:', plan.concept] : []),
+            ...(plan.lyricBrief ? ['', '가사 기획 브리프:', plan.lyricBrief] : []),
             '',
             'Suno Style of Music:',
             plan.musicStyle,
@@ -66,7 +68,7 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
                         <button
                             onClick={(e) => void handleCopyPlan(e, plan, index)}
                             className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                            title="제목, Suno 스타일, 추천 설정을 한 번에 복사"
+                            title="제목, 곡 콘셉트, 가사 브리프, Suno 스타일과 추천 설정을 한 번에 복사"
                         >
                             📦 기획 전체 복사
                         </button>
@@ -94,6 +96,19 @@ export default function MusicPlanCards({ aiPlans, activeDetailIndex, onSelect, o
                             )}
                         </button>
                     </div>
+
+                    {(plan.concept || plan.lyricBrief) && (
+                        <div className="mb-4 rounded-lg border border-amber-100 bg-amber-50/70 p-3 dark:border-amber-900/60 dark:bg-amber-950/20">
+                            <p className="mb-1 text-[10px] font-bold text-amber-700 dark:text-amber-400">📝 가사에 전달되는 곡 기획</p>
+                            {plan.concept && <p className="text-xs font-bold leading-relaxed text-slate-800 dark:text-slate-200">{plan.concept}</p>}
+                            {plan.lyricBrief && (
+                                <details className="mt-2">
+                                    <summary className="cursor-pointer text-[11px] font-bold text-amber-800 hover:text-amber-600 dark:text-amber-300">가사 기획 브리프 펼치기</summary>
+                                    <p className="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">{plan.lyricBrief}</p>
+                                </details>
+                            )}
+                        </div>
+                    )}
 
                     <div className="mb-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 p-3">
                         <div className="flex justify-between items-center mb-2">

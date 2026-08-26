@@ -70,7 +70,10 @@ export async function POST(request: Request) {
         장르에 전통, 실험, 시대적 소재가 포함되면 임의로 배제하지 말고 사용자의 의도에 맞게 해석해.
 
         [응답 구성]
-        - 제목과 설명은 ${langGuide}으로 자연스럽게 작성해.
+        - 제목, concept, lyricBrief는 ${langGuide}으로 자연스럽게 작성해.
+        - concept는 이 곡만의 상황, 화자, 정서를 한두 문장으로 명확하게 요약해. 음악 스타일 설명을 반복하지 마.
+        - lyricBrief는 이후 가사 AI가 그대로 이어 쓸 핵심 기획서야. 화자와 청자, 배경 상황, 벌스에서 전개할 사건, 프리코러스의 전환, 후렴의 핵심 메시지와 훅 방향, 브리지에서 바뀌는 감정, 마지막 도착점을 5~8문장으로 구체화해.
+        - lyricBrief에는 사용할 만한 핵심 사물·장소·감각 이미지 3~5개와 피해야 할 상투적 표현도 자연스럽게 포함해. 완성 가사나 긴 샘플 문구를 미리 쓰지는 마.
         - musicStyle은 Suno의 "Style of Music" 입력란에 그대로 붙여넣을 수 있는 자연스러운 영어 설명으로 작성해.
         - genre:, vocal:, instrumentation:, style tags:, production:, tempo: 같은 필드명, JSON 형태, 불필요한 따옴표를 출력하지 마. 내부적으로는 이 범주들을 점검하되 최종 결과는 2~4개의 간결한 문장으로 자연스럽게 연결해.
         - 첫 문장에서 핵심 하위 장르, 시대감, 숫자 BPM, 조성 또는 전체 질감을 명확히 제시하고, 이어서 보컬과 주요 악기, 마지막으로 편곡·믹싱·공간감·다이내믹을 설명해.
@@ -93,6 +96,8 @@ export async function POST(request: Request) {
             "plans": [
                 {
                     "title": "(${fullMainLang} 언어) 곡 제목",
+                    "concept": "(${fullMainLang}) 화자, 상황, 핵심 정서를 담은 곡 콘셉트",
+                    "lyricBrief": "(${fullMainLang}) 화자와 청자, 배경, 벌스 전개, 감정 전환, 후렴 메시지와 훅 방향, 브리지와 결말, 핵심 이미지, 피할 표현을 담은 가사 기획서",
                     "musicStyle": "90s underground boom bap at 90 BPM in a dark minor key, led by a sharp female rap vocal with a cynical tone and double-tracked chorus layers. Chopped jazz guitar samples, heavy vinyl snares, punchy kicks, and upright bass drive a gritty head-nodding groove. Raw analog tape saturation and lo-fi compression, with narrow close-mic verses and wider layered choruses.",
                     "musicStyleKor": "(${fullMainLang}) 스타일 설명",
                     "weirdness": 55,
@@ -105,17 +110,22 @@ export async function POST(request: Request) {
 
         const { text } = await generateText({
             model: aiModel,
-            system: `Create original music concepts from the user's intent. Return valid JSON matching the requested schema so the application can parse it. Prefer ${fullMainLang} for general fields while allowing natural genre terms and loanwords. Write musicStyle as a polished, paste-ready English Suno style description in natural prose; never expose category labels such as genre:, vocal:, instrumentation:, production:, or tempo:.`,
+            system: `Create original music concepts from the user's intent. Return valid JSON matching the requested schema so the application can parse it. Prefer ${fullMainLang} for general fields while allowing natural genre terms and loanwords. Give every plan a distinct concept and a production-ready lyricBrief that preserves the user's narrative intent for the later lyric-writing step. Write musicStyle as a polished, paste-ready English Suno style description in natural prose; never expose category labels such as genre:, vocal:, instrumentation:, production:, or tempo:.`,
             prompt: prompt,
             temperature: 0.8
         });
 
         const parsedData = parseJsonObject(text);
+        const inferredTheme = stringValue(parsedData.inferredTheme);
         const plans = Array.isArray(parsedData.plans)
             ? parsedData.plans.filter((plan) => plan && typeof plan === 'object').slice(0, 3).map((plan) => {
                 const result = plan as Record<string, unknown>;
                 return {
                     ...result,
+                    sourceKeyword: creativeKeyword,
+                    planningTheme: inferredTheme,
+                    concept: stringValue(result.concept),
+                    lyricBrief: stringValue(result.lyricBrief),
                     weirdness: creativeSliderValue(result.weirdness, 50),
                     styleInfluence: creativeSliderValue(result.styleInfluence, 80),
                     sunoSettingsReason: stringValue(result.sunoSettingsReason) || '균형 잡힌 창의성과 스타일 재현을 위한 기본 추천값입니다.',
@@ -125,7 +135,7 @@ export async function POST(request: Request) {
         if (plans.length === 0) throw new Error('AI가 유효한 음악 기획안을 반환하지 않았습니다.');
 
         return NextResponse.json({
-            inferredTheme: stringValue(parsedData.inferredTheme),
+            inferredTheme,
             plans,
             usedPrompt: prompt,
         });

@@ -14,6 +14,10 @@ export interface LyricsVersion {
 
 export interface MusicAiPlan {
     title: string;
+    sourceKeyword?: string;
+    planningTheme?: string;
+    concept?: string;
+    lyricBrief?: string;
     musicStyle: string;
     musicStyleKor?: string;
     weirdness?: number;

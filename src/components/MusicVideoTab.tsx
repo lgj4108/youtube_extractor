@@ -99,6 +99,8 @@ export default function MusicVideoTab() {
 
     const handleGenerateLyrics = async (index: number, title: string, musicStyle: string) => {
         if (!apiKey) { setIsSettingsOpen(true); return; }
+        const selectedPlan = aiPlans[index];
+        if (!selectedPlan) return;
         setAiPlans(prev => prev.map((plan, i) => i === index ? { ...plan, isGeneratingLyrics: true } : plan));
 
         const customPrompt = localStorage.getItem('custom_lyrics_prompt') || '';
@@ -106,7 +108,22 @@ export default function MusicVideoTab() {
         try {
             const data = await fetchJson<{ lyrics?: string[] | string; usedPrompt?: string }>('/api/music-generate', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: aiProvider, model: aiModel, apiKey, keyword: title, musicStyle, genre: genre.join(', '), vocalType, mainLang, subLangs, customPrompt }),
+                body: JSON.stringify({
+                    provider: aiProvider,
+                    model: aiModel,
+                    apiKey,
+                    keyword: title,
+                    creativeKeyword: selectedPlan.sourceKeyword || keyword.trim(),
+                    inferredTheme: selectedPlan.planningTheme || inferredTheme,
+                    concept: selectedPlan.concept,
+                    lyricBrief: selectedPlan.lyricBrief,
+                    musicStyle,
+                    genre: genre.join(', '),
+                    vocalType,
+                    mainLang,
+                    subLangs,
+                    customPrompt,
+                }),
             });
 
             const generatedLyrics = Array.isArray(data.lyrics) ? data.lyrics.join('\n') : (data.lyrics || '결과를 받아오지 못했습니다.');
@@ -161,6 +178,10 @@ export default function MusicVideoTab() {
                     model: aiModel,
                     apiKey,
                     title: plan.title,
+                    creativeKeyword: plan.sourceKeyword || keyword.trim(),
+                    inferredTheme: plan.planningTheme || inferredTheme,
+                    concept: plan.concept,
+                    lyricBrief: plan.lyricBrief,
                     musicStyle: plan.musicStyle,
                     vocalType,
                     mainLang,

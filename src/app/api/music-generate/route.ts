@@ -8,6 +8,10 @@ export async function POST(request: Request) {
         const body = await readJsonObject(request);
         const aiModel = createAiModel(body);
         const keyword = requiredString(body, 'keyword', '곡 제목 또는 주제를 입력해주세요.');
+        const creativeKeyword = optionalString(body, 'creativeKeyword').slice(0, 500);
+        const inferredTheme = optionalString(body, 'inferredTheme').slice(0, 2_000);
+        const concept = optionalString(body, 'concept').slice(0, 4_000);
+        const lyricBrief = optionalString(body, 'lyricBrief').slice(0, 12_000);
         const musicStyle = optionalString(body, 'musicStyle', '지정되지 않음');
         const genre = optionalString(body, 'genre', 'K-POP');
         const vocalType = optionalString(body, 'vocalType', 'Auto');
@@ -57,9 +61,18 @@ export async function POST(request: Request) {
         
         [곡 정보]
         - 곡 제목/주제: "${keyword}"
+        - 사용자가 처음 입력한 창작 키워드: ${creativeKeyword || '별도 정보 없음'}
+        - 전체 기획 테마: ${inferredTheme || '별도 정보 없음'}
+        - 이 곡의 콘셉트: ${concept || '제목과 스타일에서 자연스럽게 추론'}
         - 음악 스타일: ${musicStyle || '지정되지 않음'}
         - 장르: ${genre}
         - 사용자가 선택한 보컬 구성(필수 적용): ${vocalType}
+
+        [가사 기획 브리프 — 핵심 연결 정보]
+        ${lyricBrief || '별도의 가사 브리프가 없으므로 제목, 창작 키워드, 곡 콘셉트를 일관되게 확장해.'}
+        - 위 브리프는 기획 단계에서 선택된 이 곡의 서사 설계야. 화자, 청자, 배경, 감정선, 후렴 메시지, 이미지와 결말을 가사에 실제로 반영해.
+        - 브리프를 설명문처럼 가사에 복사하지 말고 각 섹션의 사건, 구체적 이미지, 훅과 감정 변화로 변환해.
+        - 사용자의 현재 특별 연출 지시가 브리프와 충돌하면 사용자의 현재 지시를 우선하고, 나머지 브리프는 최대한 유지해.
 
         [보컬 설계 — 필수]
         - ${vocalDirection}
@@ -78,7 +91,7 @@ export async function POST(request: Request) {
         - 참고 작품의 문장, 샘플 문구, 고유한 비유를 복사하지 말고 구조적 기법과 음향 설계 방식만 학습해 완전히 새로운 가사와 반복 모티프를 만들어.
         
         [창작 방향]
-        - 사용자의 제목, 스타일, 특별 지시를 가장 중요한 기준으로 삼아.
+        - 사용자의 창작 키워드, 곡 콘셉트, 가사 기획 브리프, 제목, 스타일, 특별 지시를 서로 연결해 하나의 곡으로 완성해.
         - 가사는 ${fullMainLang}를 중심으로 작성하고${fullSubLangs.length ? ` ${fullSubLangs.join(', ')}를 자연스럽게 섞을 수 있어` : ' 장르상 자연스러운 외래어와 훅은 허용해'}.
         ${koreanPronunciationGuide}
         - 위 음악 스타일은 Suno의 "Style of Music" 정보이고 가사와 분리해. 스타일 문구를 lyrics 안에 되풀이하지 마.

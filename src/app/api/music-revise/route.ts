@@ -8,6 +8,10 @@ export async function POST(request: Request) {
         const body = await readJsonObject(request);
         const aiModel = createAiModel(body);
         const title = requiredString(body, 'title', '곡 제목이 필요합니다.').slice(0, 500);
+        const creativeKeyword = optionalString(body, 'creativeKeyword').slice(0, 500);
+        const inferredTheme = optionalString(body, 'inferredTheme').slice(0, 2_000);
+        const concept = optionalString(body, 'concept').slice(0, 4_000);
+        const lyricBrief = optionalString(body, 'lyricBrief').slice(0, 12_000);
         const musicStyle = optionalString(body, 'musicStyle', '지정되지 않음').slice(0, 8_000);
         const vocalType = optionalString(body, 'vocalType', 'Auto').slice(0, 200);
         const mainLang = optionalString(body, 'mainLang', 'KR').slice(0, 20);
@@ -31,6 +35,10 @@ export async function POST(request: Request) {
         [작업]
         기존 Suno 가사의 일부를 사용자의 요청에 맞게 정교하게 수정해.
         - 곡 제목: ${title}
+        - 최초 창작 키워드: ${creativeKeyword || '별도 정보 없음'}
+        - 전체 기획 테마: ${inferredTheme || '별도 정보 없음'}
+        - 곡 콘셉트: ${concept || '별도 정보 없음'}
+        - 가사 기획 브리프: ${lyricBrief || '별도 정보 없음'}
         - Style of Music: ${musicStyle}
         - 보컬 구성: ${vocalType}
         - 중심 언어: ${languageName}
@@ -41,6 +49,7 @@ export async function POST(request: Request) {
 
         [필수 품질 규칙]
         - 새로운 곡을 처음부터 다시 쓰지 말고 기존 곡의 주제, 화자, 어조, 훅과 구조를 유지해.
+        - 수정 결과가 곡 콘셉트와 가사 기획 브리프의 화자, 감정선, 핵심 이미지, 결말에서 벗어나지 않게 해.
         - [Verse], [Chorus], [Female Vocal], [Backing Vocals] 같은 영어 메타태그는 노래로 부를 가사가 아니므로 사용자의 요청과 관련 없으면 보존해.
         - 한국어 가사는 실제로 자연스럽게 발음되는 단어와 어순을 사용하고, 숫자·약어·기호 조합은 가창 가능한 표현으로 풀어 써.
         - 각 줄은 호흡하기 좋은 길이로 유지하고 주변 줄과 음절 밀도, 라임, 반복 강도를 맞춰.
