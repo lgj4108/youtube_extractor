@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createAiModel, parseJsonObject, stringArray, stringValue } from '@/lib/server/ai';
 import { errorResponse, optionalString, readJsonObject, RequestError, requiredString } from '@/lib/server/api';
+import { SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
 
 export async function POST(request: Request) {
     try {
@@ -55,6 +56,10 @@ export async function POST(request: Request) {
         - 각 줄은 호흡하기 좋은 길이로 유지하고 주변 줄과 음절 밀도, 라임, 반복 강도를 맞춰.
         - 참고 작품을 복제하거나 기존 곡의 고유 문구를 새로 끌어오지 마.
         - 설명, 마크다운 코드 블록, 변경 요약을 덧붙이지 마.
+
+        [구조 수정 요청에 적용할 표준]
+        사용자가 메타태그·곡 구조·섹션 연출을 고쳐 달라고 했을 때 아래 표준을 적용해. 단순 문구 수정 요청에서는 선택 밖의 기존 구조를 임의로 재포맷하지 마.
+        ${SUNO_LYRICS_STRUCTURE_GUIDE}
 
         <full_lyrics>
         ${rawLyrics}

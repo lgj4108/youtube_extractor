@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createAiModel, parseJsonObject, stringArray } from '@/lib/server/ai';
 import { errorResponse, optionalString, optionalStringArray, readJsonObject, requiredString } from '@/lib/server/api';
+import { SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
 
 export async function POST(request: Request) {
     try {
@@ -25,8 +26,8 @@ export async function POST(request: Request) {
         const usesKorean = mainLang === 'KR' || subLangs.includes('KR');
 
         const vocalDirections: Record<string, string> = {
-            'Female Solo': `여성 솔로가 필수다. 모든 노래 파트에 [Female Vocal]을 명시하고, 필요한 구간에서만 [Whispers], [Falsetto], [Rap], [Backing Vocals] 중 하나를 보조 태그로 추가해. [Male Vocal]이나 [Duet]을 사용하지 마.`,
-            'Male Solo': `남성 솔로가 필수다. 모든 노래 파트에 [Male Vocal]을 명시하고, 필요한 구간에서만 [Whispers], [Falsetto], [Rap], [Backing Vocals] 중 하나를 보조 태그로 추가해. [Female Vocal]이나 [Duet]을 사용하지 마.`,
+            'Female Solo': `여성 솔로가 필수다. 첫 노래 파트와 창법이 바뀌는 지점에 [Female Vocal]을 명시하고, 필요한 구간에서만 [Whisper], [Humming], [Rap], [Harmony], [Backing Vocals] 중 하나를 보조 태그로 추가해. [Male Vocal]이나 [Duet]을 사용하지 마.`,
+            'Male Solo': `남성 솔로가 필수다. 첫 노래 파트와 창법이 바뀌는 지점에 [Male Vocal]을 명시하고, 필요한 구간에서만 [Whisper], [Humming], [Rap], [Harmony], [Backing Vocals] 중 하나를 보조 태그로 추가해. [Female Vocal]이나 [Duet]을 사용하지 마.`,
             'Duet': `혼성 듀엣이 필수다. 솔로 파트는 [Female Vocal]과 [Male Vocal]로 명확히 나누고, 함께 부르는 후렴이나 엔딩에는 [Duet]을 명시해. 두 화자의 관점과 가사를 구분하고 최소 한 구간씩 공평하게 배정해.`,
             'Idol Group': `아이돌 그룹 보컬이 필수다. 곡에 맞는 그룹 성별 구성을 먼저 결정한 뒤 [Lead Vocal], [Group Vocals], [Rap], [Backing Vocals]로 파트를 분담해. 후렴에는 [Group Vocals]을 명시하고, 한 명의 솔로처럼만 구성하지 마.`,
             'Auto': `장르, 음악 스타일, 서사에 가장 맞는 솔로·듀엣·그룹 구성을 하나 결정해. 첫 노래 파트부터 [Female Vocal], [Male Vocal], [Duet], [Lead Vocal], [Group Vocals] 중 실제 선택 결과를 명시하고, [Auto]나 [AI Vocal]이라는 태그는 출력하지 마.`,
@@ -34,11 +35,11 @@ export async function POST(request: Request) {
         const vocalDirection = vocalDirections[vocalType] || vocalDirections.Auto;
 
         const lyricsExamples: Record<string, string[]> = {
-            'Female Solo': ['[Intro - Distant Vocal Pad, Tape Crackle]', '[Instrumental]', '', '[Verse 1 - Close-mic, Narrow Stereo]', '[Female Vocal]', 'short singable lyric line', '', '[Chorus - Wide Stereo, Layered Vocals]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Bridge - No Percussion, Long Reverb]', '[Female Vocal] [Whispers]', 'contrasting bridge line', '', '[Outro - Distant, Fade Out]', '[Female Vocal]', 'closing lyric line', '[End]'],
-            'Male Solo': ['[Intro - Filtered Choir, Room Tone]', '[Instrumental]', '', '[Verse 1 - Close-mic, Dry Vocal]', '[Male Vocal]', 'short singable lyric line', '', '[Chorus - Wide Stereo, Layered Vocals]', '[Male Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Bridge - No Percussion, Long Reverb]', '[Male Vocal] [Falsetto]', 'contrasting bridge line', '', '[Outro - Distant, Fade Out]', '[Male Vocal]', 'closing lyric line', '[End]'],
-            'Duet': ['[Intro - Distant Sample, Soft Static]', '[Instrumental]', '', '[Verse 1 - Left Channel, Close-mic]', '[Female Vocal]', 'first voice lyric line', '', '[Verse 2 - Right Channel, Close-mic]', '[Male Vocal]', 'second voice lyric line', '', '[Chorus - Wide Stereo, Call and Response]', '[Duet] [Backing Vocals]', 'shared repeatable hook line', '', '[Outro - Voices Receding, Fade Out]', '[Duet]', 'shared closing lyric line', '[End]'],
-            'Idol Group': ['[Intro - Chopped Vocal Loop, Wide Stereo]', '[Instrumental]', '', '[Verse 1 - Tight Mono, Close-mic]', '[Lead Vocal]', 'lead lyric line', '', '[Pre-Chorus - Rising Reverb, Crescendo]', '[Rap] [Backing Vocals]', 'short rap line', '', '[Chorus - Full Width, Layered Chorus]', '[Group Vocals] [Backing Vocals]', 'shared repeatable hook line', '', '[Outro - Chopped Hook, Fade Out]', '[Group Vocals]', 'closing lyric line', '[End]'],
-            'Auto': ['[Intro - Distant Vocal Texture, Room Tone]', '[Instrumental]', '', '[Verse 1 - Close-mic, Narrow Stereo]', '[Female Vocal]', 'example lyric after choosing the fitting vocal', '', '[Chorus - Wide Stereo, Layered Vocals]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Bridge - Stripped Back, Long Reverb]', '[Female Vocal] [Whispers]', 'contrasting bridge line', '', '[Outro - Distant, Fade Out]', '[Female Vocal]', 'closing lyric line', '[End]'],
+            'Female Solo': ['[Instrumental Intro: distant vocal pad, tape crackle]', '', '[Verse 1: close-mic, narrow stereo]', '[Female Vocal]', 'short singable lyric line', '', '[Chorus: wide stereo, layered harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', '[Whisper]', 'contrasting bridge line', '', '[Chorus: reprise, wider harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Outro: distant vocal, fade out]', 'closing lyric line', '[End]'],
+            'Male Solo': ['[Instrumental Intro: filtered choir, room tone]', '', '[Verse 1: close-mic, dry vocal]', '[Male Vocal]', 'short singable lyric line', '', '[Chorus: full band, wide harmonies]', '[Male Vocal] [Backing Vocals]', 'repeatable hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', '[Whisper]', 'contrasting bridge line', '', '[Chorus: reprise, wider harmonies]', '[Male Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Outro: distant vocal, fade out]', 'closing lyric line', '[End]'],
+            'Duet': ['[Instrumental Intro: distant sample, soft static]', '', '[Verse 1: left channel, close-mic]', '[Female Vocal]', 'first voice lyric line', '', '[Verse 2: right channel, close-mic]', '[Male Vocal]', 'second voice lyric line', '', '[Chorus: wide stereo, call and response]', '[Duet] [Backing Vocals]', 'shared repeatable hook line', '', '[Chorus: reprise, layered harmonies]', '[Duet] [Harmony]', 'shared repeatable hook line', '', '[Outro: voices receding, fade out]', 'shared closing lyric line', '[End]'],
+            'Idol Group': ['[Instrumental Intro: chopped vocal loop, wide stereo]', '', '[Verse 1: tight mono, close-mic]', '[Lead Vocal]', 'lead lyric line', '', '[Pre-Chorus: building energy, adding layers]', '[Rap] [Backing Vocals]', 'short rap line', '', '[Chorus: full production, layered harmonies]', '[Group Vocals] [Backing Vocals]', 'shared repeatable hook line', '', '[Chorus: reprise, wider harmonies]', '[Group Vocals] [Harmony]', 'shared repeatable hook line', '', '[Outro: chopped hook, fade out]', 'closing lyric line', '[End]'],
+            'Auto': ['[Instrumental Intro: distant vocal texture, room tone]', '', '[Verse 1: close-mic, narrow stereo]', '[Female Vocal]', 'example lyric after choosing the fitting vocal', '', '[Chorus: full production, wide harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', '[Whisper]', 'contrasting bridge line', '', '[Chorus: reprise, wider harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Outro: distant vocal, fade out]', 'closing lyric line', '[End]'],
         };
         const responseExample = JSON.stringify({
             lyrics: lyricsExamples[vocalType] || lyricsExamples.Auto,
@@ -77,11 +78,13 @@ export async function POST(request: Request) {
         [보컬 설계 — 필수]
         - ${vocalDirection}
         - 선택된 보컬 구성은 단순 참고값이 아니라 필수 제약이야. 특별 지시로 음색·창법을 더 구체화할 수는 있지만 선택된 성별·인원 구성과 모순되게 바꾸지 마.
-        - 가사가 있는 각 섹션에는 구조 태그 다음 줄에 담당 보컬 태그를 넣어, 누가 부르는지 가사만 보아도 명확하게 만들어.
+        - 첫 노래 파트와 보컬 담당·창법이 바뀌는 지점에는 구조 태그 다음 줄에 담당 보컬 태그를 넣어, 누가 부르는지 명확하게 만들어. 같은 보컬이 이어질 때는 태그를 기계적으로 반복하지 마.
+
+        ${SUNO_LYRICS_STRUCTURE_GUIDE}
 
         [공간감·코러스·사운드 연출]
         - 곡의 콘셉트와 음악 스타일에 도움이 될 때는 가사뿐 아니라 청자가 실제로 듣게 될 공간과 음향의 변화를 시간 순서로 설계해. 모든 곡에 아래 요소를 전부 강제로 넣지는 마.
-        - 섹션 태그는 [Verse 1 - Close-mic, Narrow Stereo], [Chorus - Wide Stereo, Layered Vocals], [Bridge - No Percussion, Long Reverb]처럼 표준 구조 이름을 맨 앞에 두고, 하이픈 뒤에 해당 구간의 핵심 음향 지시를 짧은 영어로 덧붙일 수 있어.
+        - 섹션 태그는 [Verse 1: close-mic, narrow stereo], [Chorus: wide stereo, layered harmonies], [Bridge: no percussion, long reverb]처럼 표준 구조 이름을 맨 앞에 두고, 콜론 뒤에 해당 구간의 핵심 음향 지시를 짧은 영어로 덧붙여.
         - 공간 지시는 left channel, right channel, centered, foreground, distant, close-mic, narrow stereo, wide stereo, empty room, long reverb, short delay처럼 실제 청감으로 확인 가능한 표현을 사용해.
         - [Chorus]는 반복되는 후렴 구간이고, [Choir], [Backing Vocals], [Layered Vocals], [Group Vocals], [Unison], [Call and Response]는 보컬 레이어 연출이야. 둘을 혼동하지 말고 후렴의 폭과 화음이 필요할 때 적절히 결합해.
         - 곡의 정체성을 만드는 짧고 독창적인 보컬 샘플이나 애드리브를 하나 정했다면 괄호 안에 표시하고, 섹션이 진행될수록 volume, pan, pitch, filtering, chopping, looping 중 필요한 변화를 주어 반복 모티프로 발전시킬 수 있어.
@@ -95,11 +98,11 @@ export async function POST(request: Request) {
         - 가사는 ${fullMainLang}를 중심으로 작성하고${fullSubLangs.length ? ` ${fullSubLangs.join(', ')}를 자연스럽게 섞을 수 있어` : ' 장르상 자연스러운 외래어와 훅은 허용해'}.
         ${koreanPronunciationGuide}
         - 위 음악 스타일은 Suno의 "Style of Music" 정보이고 가사와 분리해. 스타일 문구를 lyrics 안에 되풀이하지 마.
-        - 기본적으로 유튜브용 완곡에 어울리는 3~5분 분량을 목표로 하되, 곡 구조와 길이, 반복, 화음, 연주 구간은 장르와 서사에 맞게 자유롭게 판단해. 모든 섹션을 억지로 넣지 말고 곡에 필요한 것만 선택해.
-        - 각 가사 블록의 첫 줄에는 [Intro], [Verse 1], [Pre-Chorus], [Chorus], [Hook], [Bridge], [Break], [Instrumental], [Outro]처럼 Suno가 해석하기 쉬운 표준 영어 대괄호 태그를 배치해.
+        - 기본적으로 유튜브용 완곡에 어울리는 3~5분 분량을 목표로 하되, 곡 구조와 길이, 반복, 화음, 연주 구간은 장르와 서사에 맞게 자유롭게 판단해. Intro–Verse–Pre-Chorus–Chorus–Verse–Bridge 틀을 매번 복제하지 말고 곡에 필요한 섹션만 선택해.
+        - 각 가사 블록의 첫 줄에는 [Instrumental Intro], [Verse 1], [Pre-Chorus], [Chorus], [Hook], [Bridge], [Breakdown], [Instrumental Break], [Outro]처럼 Suno가 해석하기 쉬운 표준 영어 대괄호 태그를 배치해.
         - [Verse]는 이야기를 전개하고, [Chorus]는 가장 기억에 남는 핵심 가사를 같은 형태로 반복해. [Bridge]는 후렴과 다른 가사 톤으로 전환하며, [Outro]는 감정을 정리해.
         - 곡을 명확히 끝내야 할 때는 마지막에 [End]를 단독 줄로 넣어. 자연스럽게 잦아드는 엔딩에만 [Outro] 뒤 [Fade Out]을 사용하고 그 다음 [End]로 마쳐.
-        - 보컬 태그는 [Female Vocal], [Male Vocal], [Duet], [Lead Vocal], [Group Vocals]을 기본으로 하고, 필요한 순간에만 [Rap], [Whispers], [Falsetto], [Choir], [Backing Vocals] 같은 연출 태그를 하나 더 결합해.
+        - 보컬 태그는 [Female Vocal], [Male Vocal], [Duet], [Lead Vocal], [Group Vocals]을 기본으로 하고, 필요한 순간에만 [Rap], [Whisper], [Humming], [Choir], [Harmony], [Backing Vocals] 같은 연출 태그를 하나 더 결합해.
         - 가사가 없는 [Intro], [Instrumental], [Guitar Solo], [Piano Solo]는 연주 구간으로 사용해. 같은 태그 아래 가사를 두면 보컬 구간으로 해석될 수 있으므로 의도에 맞춰 구분해.
         - [Crescendo], [Decrescendo], [Accelerando] 같은 다이내믹 태그와 [Rain SFX], [Thunder SFX], [Applause] 같은 효과음 태그는 실제로 그 변화나 소리가 시작될 정확한 위치에만 넣어. 음악적으로 불필요하면 사용하지 마.
         - 한 위치에 메타태그를 과도하게 쌓지 말고 구조 태그와 핵심 연출 태그를 합쳐 2~3개 이내로 사용해. 메타태그는 제어 힌트일 뿐이므로 곡에 불필요한 태그를 억지로 넣지 마.
@@ -116,7 +119,7 @@ export async function POST(request: Request) {
 
         const { text } = await generateText({
             model: aiModel,
-            system: `Write original Suno-ready lyrics as valid JSON. The selected vocal configuration (${vocalType}) is mandatory: identify the singer for every sung section with matching English vocal meta tags. When the concept benefits from it, design an intentional soundstage, layered chorus vocals, recurring processed motifs, and section-to-section dynamic contrast using concise English production tags. Return lyrics only and do not generate image, video, scene, album-cover, or thumbnail prompts. Never copy lyrics or distinctive phrases from a reference work.`,
+            system: `Write original, structured Suno-ready lyrics as valid JSON. The selected vocal configuration (${vocalType}) is mandatory. Use canonical bracketed section tags, colon-based section descriptors, concise vocal tags at vocal changes, readable blank lines between sections, repeatable chorus text, and intentional section-to-section contrast. Avoid redundant tags and overly long prose-like sections. Return lyrics only and do not generate image, video, scene, album-cover, or thumbnail prompts. Never copy lyrics or distinctive phrases from a reference work.`,
             prompt,
         });
         const parsedData = parseJsonObject(text);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createAiModel, parseJsonObject, stringValue } from '@/lib/server/ai';
 import { errorResponse, optionalString, readJsonObject, RequestError, requiredString } from '@/lib/server/api';
+import { SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -88,6 +89,9 @@ ${message}
 - 한국어 가사는 실제 가창 시 자연스럽게 발음되고 호흡할 수 있는 단어와 어순을 사용해.
 - 보컬, 코러스, 공간감, 다이내믹 지시는 곡과 요청에 필요할 때만 간결한 영어 대괄호 태그로 배치해.
 - 가사 안에 설명, 마크다운 코드 펜스, 변경 요약을 넣지 마.
+
+suggestedLyrics를 작성하거나 구조 개선을 제안할 때는 아래 표준을 적용해.
+${SUNO_LYRICS_STRUCTURE_GUIDE}
 
 아래 JSON 객체만 반환해.
 {
