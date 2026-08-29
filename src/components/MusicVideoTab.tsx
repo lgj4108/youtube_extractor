@@ -2,7 +2,7 @@
 import { useState, FormEvent } from 'react';
 import { YouTubeVideo } from '@/types/youtube';
 import MusicSearchForm from './music/MusicSearchForm';
-import MusicAiResult, { MusicAiPlan } from './music/MusicAiResult';
+import MusicAiResult, { LyricCopilotMessage, MusicAiPlan } from './music/MusicAiResult';
 import AiSettingsModal from './planner/AiSettingsModal';
 import { fetchJson } from '@/lib/http';
 import { getErrorMessage } from '@/lib/errors';
@@ -203,6 +203,70 @@ export default function MusicVideoTab() {
         }
     };
 
+    const handleChatWithLyricCopilot = async (index: number, lyrics: string, message: string) => {
+        if (!apiKey) {
+            setIsSettingsOpen(true);
+            return false;
+        }
+
+        const plan = aiPlans[index];
+        if (!plan) return false;
+        const previousMessages = (plan.lyricCopilotMessages || []).slice(-12);
+        const userMessage: LyricCopilotMessage = {
+            id: `${Date.now()}-user`,
+            role: 'user',
+            content: message,
+        };
+        setError('');
+        setAiPlans((previous) => previous.map((item, planIndex) => planIndex === index
+            ? { ...item, lyricCopilotMessages: [...(item.lyricCopilotMessages || []), userMessage].slice(-16) }
+            : item));
+
+        try {
+            const data = await fetchJson<{ reply?: string; suggestedLyrics?: string }>('/api/lyrics-copilot', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider: aiProvider,
+                    model: aiModel,
+                    apiKey,
+                    title: plan.title,
+                    creativeKeyword: plan.sourceKeyword || keyword.trim(),
+                    inferredTheme: plan.planningTheme || inferredTheme,
+                    concept: plan.concept,
+                    lyricBrief: plan.lyricBrief,
+                    musicStyle: plan.musicStyle,
+                    vocalType,
+                    mainLang,
+                    lyrics,
+                    message,
+                    history: previousMessages.map(({ role, content, suggestedLyrics }) => ({ role, content, suggestedLyrics })),
+                }),
+            });
+            const assistantMessage: LyricCopilotMessage = {
+                id: `${Date.now()}-assistant`,
+                role: 'assistant',
+                content: data.reply || '요청을 확인했습니다.',
+                suggestedLyrics: data.suggestedLyrics || undefined,
+            };
+            setAiPlans((previous) => previous.map((item, planIndex) => planIndex === index
+                ? { ...item, lyricCopilotMessages: [...(item.lyricCopilotMessages || []), assistantMessage].slice(-16) }
+                : item));
+            return true;
+        } catch (requestError: unknown) {
+            setAiPlans((previous) => previous.map((item, planIndex) => planIndex === index
+                ? { ...item, lyricCopilotMessages: (item.lyricCopilotMessages || []).filter((itemMessage) => itemMessage.id !== userMessage.id) }
+                : item));
+            setError(`가사 코파일럿 오류: ${getErrorMessage(requestError)}`);
+            return false;
+        }
+    };
+
+    const handleClearLyricCopilot = (index: number) => {
+        setAiPlans((previous) => previous.map((plan, planIndex) => planIndex === index
+            ? { ...plan, lyricCopilotMessages: [] }
+            : plan));
+    };
+
     return (
         <div className="animate-fadeIn relative pb-20">
             {isSettingsOpen && <AiSettingsModal onClose={() => setIsSettingsOpen(false)} provider={aiProvider} setProvider={setAiProvider} model={aiModel} setModel={setAiModel} apiKey={apiKey} setApiKey={setApiKey} />}
@@ -251,6 +315,8 @@ export default function MusicVideoTab() {
                 onGenerateLyrics={handleGenerateLyrics}
                 onSaveLyrics={handleSaveLyrics}
                 onReviseLyrics={handleReviseLyrics}
+                onChatWithLyricCopilot={handleChatWithLyricCopilot}
+                onClearLyricCopilot={handleClearLyricCopilot}
             />
         </div>
     );

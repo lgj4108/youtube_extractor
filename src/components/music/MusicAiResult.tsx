@@ -12,6 +12,13 @@ export interface LyricsVersion {
     editMethod?: 'manual' | 'ai';
 }
 
+export interface LyricCopilotMessage {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    suggestedLyrics?: string;
+}
+
 export interface MusicAiPlan {
     title: string;
     sourceKeyword?: string;
@@ -25,6 +32,7 @@ export interface MusicAiPlan {
     sunoSettingsReason?: string;
     lyrics?: string;
     history?: LyricsVersion[];
+    lyricCopilotMessages?: LyricCopilotMessage[];
     isGeneratingLyrics?: boolean;
 }
 
@@ -41,12 +49,15 @@ interface MusicAiResultProps {
     onGenerateLyrics: (index: number, title: string, musicStyle: string) => void;
     onSaveLyrics: (index: number, sourceVersionIndex: number, lyrics: string, editMethod: 'manual' | 'ai') => void;
     onReviseLyrics: (index: number, lyrics: string, instruction: string, selectedText: string) => Promise<string | null>;
+    onChatWithLyricCopilot: (index: number, lyrics: string, message: string) => Promise<boolean>;
+    onClearLyricCopilot: (index: number) => void;
 }
 
 export default function MusicAiResult({
                                           aiPlans, isGeneratingPlans, inferredTheme, planPrompt,
                                           genre, setGenre, vocalType, setVocalType, mainLang, setMainLang, subLangs, setSubLangs,
-                                          onGeneratePlans, onGenerateLyrics, onSaveLyrics, onReviseLyrics
+                                          onGeneratePlans, onGenerateLyrics, onSaveLyrics, onReviseLyrics,
+                                          onChatWithLyricCopilot, onClearLyricCopilot
                                       }: MusicAiResultProps) {
 
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(null);
@@ -146,6 +157,8 @@ export default function MusicAiResult({
                     onOpenPrompt={openPromptViewer}
                     onSaveLyrics={(sourceVersionIndex, lyrics, editMethod) => onSaveLyrics(activeDetailIndex, sourceVersionIndex, lyrics, editMethod)}
                     onReviseLyrics={(lyrics, instruction, selectedText) => onReviseLyrics(activeDetailIndex, lyrics, instruction, selectedText)}
+                    onChatWithLyricCopilot={(lyrics, message) => onChatWithLyricCopilot(activeDetailIndex, lyrics, message)}
+                    onClearLyricCopilot={() => onClearLyricCopilot(activeDetailIndex)}
                 />
             )}
         </div>

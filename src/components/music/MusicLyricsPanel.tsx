@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { copyText } from '@/lib/http';
 import { MusicAiPlan } from './MusicAiResult';
 import SunoCreativeSettings, { formatSunoCreativeSettings } from './SunoCreativeSettings';
+import LyricsCopilot from './LyricsCopilot';
 
 interface MusicLyricsPanelProps {
     activePlan: MusicAiPlan;
@@ -10,11 +11,13 @@ interface MusicLyricsPanelProps {
     onOpenPrompt: (title: string, content: string) => void;
     onSaveLyrics: (sourceVersionIndex: number, lyrics: string, editMethod: 'manual' | 'ai') => void;
     onReviseLyrics: (lyrics: string, instruction: string, selectedText: string) => Promise<string | null>;
+    onChatWithLyricCopilot: (lyrics: string, message: string) => Promise<boolean>;
+    onClearLyricCopilot: () => void;
 }
 
 const AI_REVISION_EXAMPLES = ['후렴을 더 중독성 있게', '한국어 발음을 더 자연스럽게', '보컬·코러스 태그 정리', '공간감과 다이내믹 강화'];
 
-export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt, onSaveLyrics, onReviseLyrics }: MusicLyricsPanelProps) {
+export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt, onSaveLyrics, onReviseLyrics, onChatWithLyricCopilot, onClearLyricCopilot }: MusicLyricsPanelProps) {
     const history = activePlan?.history || [];
     const [viewIndex, setViewIndex] = useState<number>(Math.max(0, history.length - 1));
     const [isEditing, setIsEditing] = useState(false);
@@ -267,6 +270,17 @@ export default function MusicLyricsPanel({ activePlan, showToast, onOpenPrompt, 
                 </div>
 
                 <div className="flex-1 flex flex-col gap-5 h-full">
+                    <LyricsCopilot
+                        messages={activePlan.lyricCopilotMessages || []}
+                        currentLyrics={currentView.lyrics}
+                        onSend={onChatWithLyricCopilot}
+                        onApply={(lyrics) => {
+                            onSaveLyrics(safeIndex, lyrics, 'ai');
+                            showToast(`코파일럿 제안을 버전 ${history.length + 1}로 저장했습니다.`);
+                        }}
+                        onClear={onClearLyricCopilot}
+                        showToast={showToast}
+                    />
                     {(activePlan.concept || activePlan.lyricBrief) && (
                         <div className="flex flex-col gap-2 shrink-0">
                             <div className="border-b border-slate-100 pb-2 dark:border-slate-800">
