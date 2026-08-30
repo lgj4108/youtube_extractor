@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createAiModel, parseJsonObject, stringArray } from '@/lib/server/ai';
 import { errorResponse, optionalString, optionalStringArray, readJsonObject, requiredString } from '@/lib/server/api';
-import { SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
+import { LYRICS_WRITING_QUALITY_GUIDE, SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
 
 export async function POST(request: Request) {
     try {
@@ -35,11 +35,11 @@ export async function POST(request: Request) {
         const vocalDirection = vocalDirections[vocalType] || vocalDirections.Auto;
 
         const lyricsExamples: Record<string, string[]> = {
-            'Female Solo': ['[Instrumental Intro: distant vocal pad, tape crackle]', '', '[Verse 1: close-mic, narrow stereo]', '[Female Vocal]', 'short singable lyric line', '', '[Chorus: wide stereo, layered harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', '[Whisper]', 'contrasting bridge line', '', '[Chorus: reprise, wider harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Outro: distant vocal, fade out]', 'closing lyric line', '[End]'],
-            'Male Solo': ['[Instrumental Intro: filtered choir, room tone]', '', '[Verse 1: close-mic, dry vocal]', '[Male Vocal]', 'short singable lyric line', '', '[Chorus: full band, wide harmonies]', '[Male Vocal] [Backing Vocals]', 'repeatable hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', '[Whisper]', 'contrasting bridge line', '', '[Chorus: reprise, wider harmonies]', '[Male Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Outro: distant vocal, fade out]', 'closing lyric line', '[End]'],
-            'Duet': ['[Instrumental Intro: distant sample, soft static]', '', '[Verse 1: left channel, close-mic]', '[Female Vocal]', 'first voice lyric line', '', '[Verse 2: right channel, close-mic]', '[Male Vocal]', 'second voice lyric line', '', '[Chorus: wide stereo, call and response]', '[Duet] [Backing Vocals]', 'shared repeatable hook line', '', '[Chorus: reprise, layered harmonies]', '[Duet] [Harmony]', 'shared repeatable hook line', '', '[Outro: voices receding, fade out]', 'shared closing lyric line', '[End]'],
+            'Female Solo': ['[Intro: filtered hook preview, distant]', '[Female Vocal]', '(short hook fragment)', '', '[Verse 1: close-mic, narrow stereo]', 'short scene-setting lyric line', '', '[Chorus: wide stereo, layered harmonies]', '[Backing Vocals]', 'repeatable hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', '[Whisper]', 'a new decision or realization', '', '[Chorus: reprise, wider harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook with changed resolution', '', '[Outro: distant vocal, fade out]', 'closing lyric line', '[End]'],
+            'Male Solo': ['[Intro: close-mic, vinyl crackle]', '[Male Vocal] [Spoken Word]', 'one concise scene-setting line', '', '[Verse 1: dry vocal, muted rhythm section]', '[Rap]', 'short lyric that advances the event', '', '[Chorus: full band, wide harmonies]', '[Male Vocal] [Backing Vocals]', 'clear conversational hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', 'a new choice or realization', '', '[Chorus: reprise, wider harmonies]', '[Backing Vocals]', 'same hook with changed resolution', '', '[End]'],
+            'Duet': ['[Intro: overlapping whispers, split stereo]', '[Female Vocal]', 'first voice question', '[Male Vocal]', 'second voice answer', '', '[Verse 1: left channel, close-mic]', '[Female Vocal]', 'first perspective lyric line', '', '[Verse 2: right channel, close-mic]', '[Male Vocal]', 'second perspective lyric line', '', '[Chorus: wide stereo, call and response]', '[Duet] [Backing Vocals]', 'shared repeatable hook line', '', '[Bridge: stripped down, alternating voices]', 'a decision that changes both perspectives', '', '[End]'],
             'Idol Group': ['[Instrumental Intro: chopped vocal loop, wide stereo]', '', '[Verse 1: tight mono, close-mic]', '[Lead Vocal]', 'lead lyric line', '', '[Pre-Chorus: building energy, adding layers]', '[Rap] [Backing Vocals]', 'short rap line', '', '[Chorus: full production, layered harmonies]', '[Group Vocals] [Backing Vocals]', 'shared repeatable hook line', '', '[Chorus: reprise, wider harmonies]', '[Group Vocals] [Harmony]', 'shared repeatable hook line', '', '[Outro: chopped hook, fade out]', 'closing lyric line', '[End]'],
-            'Auto': ['[Instrumental Intro: distant vocal texture, room tone]', '', '[Verse 1: close-mic, narrow stereo]', '[Female Vocal]', 'example lyric after choosing the fitting vocal', '', '[Chorus: full production, wide harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '(short backing response)', '', '[Bridge: stripped down, long reverb]', '[Whisper]', 'contrasting bridge line', '', '[Chorus: reprise, wider harmonies]', '[Female Vocal] [Backing Vocals]', 'repeatable hook line', '', '[Outro: distant vocal, fade out]', 'closing lyric line', '[End]'],
+            'Auto': ['[Verse 1: cold open, close-mic]', '[Female Vocal]', 'begin directly with a concrete action or line of dialogue', '', '[Hook: wider vocal, minimal beat]', '[Backing Vocals]', 'short repeatable emotional statement', '', '[Verse 2: fuller groove]', 'new action that changes the situation', '', '[Bridge: stripped down, vulnerable vocal]', 'a choice or realization', '', '[Hook: reprise, full harmony]', 'same hook with changed emotional meaning', '', '[End]'],
         };
         const responseExample = JSON.stringify({
             lyrics: lyricsExamples[vocalType] || lyricsExamples.Auto,
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         
         [곡 정보]
         - 곡 제목/주제: "${keyword}"
-        - 사용자가 처음 입력한 창작 키워드: ${creativeKeyword || '별도 정보 없음'}
+        - 사용자가 처음 입력한 창작 키워드(영감용, 가사 내 직접 사용은 선택): ${creativeKeyword || '별도 정보 없음'}
         - 전체 기획 테마: ${inferredTheme || '별도 정보 없음'}
         - 이 곡의 콘셉트: ${concept || '제목과 스타일에서 자연스럽게 추론'}
         - 음악 스타일: ${musicStyle || '지정되지 않음'}
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         - 사용자가 선택한 보컬 구성(필수 적용): ${vocalType}
 
         [가사 기획 브리프 — 핵심 연결 정보]
-        ${lyricBrief || '별도의 가사 브리프가 없으므로 제목, 창작 키워드, 곡 콘셉트를 일관되게 확장해.'}
+        ${lyricBrief || '별도의 가사 브리프가 없으므로 제목과 곡 콘셉트에서 자연스러운 인간적 상황을 자유롭게 설계해. 창작 키워드는 영감으로만 사용해도 돼.'}
         - 위 브리프는 기획 단계에서 선택된 이 곡의 서사 설계야. 화자, 청자, 배경, 감정선, 후렴 메시지, 이미지와 결말을 가사에 실제로 반영해.
         - 브리프를 설명문처럼 가사에 복사하지 말고 각 섹션의 사건, 구체적 이미지, 훅과 감정 변화로 변환해.
         - 사용자의 현재 특별 연출 지시가 브리프와 충돌하면 사용자의 현재 지시를 우선하고, 나머지 브리프는 최대한 유지해.
@@ -81,6 +81,8 @@ export async function POST(request: Request) {
         - 첫 노래 파트와 보컬 담당·창법이 바뀌는 지점에는 구조 태그 다음 줄에 담당 보컬 태그를 넣어, 누가 부르는지 명확하게 만들어. 같은 보컬이 이어질 때는 태그를 기계적으로 반복하지 마.
 
         ${SUNO_LYRICS_STRUCTURE_GUIDE}
+
+        ${LYRICS_WRITING_QUALITY_GUIDE}
 
         [공간감·코러스·사운드 연출]
         - 곡의 콘셉트와 음악 스타일에 도움이 될 때는 가사뿐 아니라 청자가 실제로 듣게 될 공간과 음향의 변화를 시간 순서로 설계해. 모든 곡에 아래 요소를 전부 강제로 넣지는 마.
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
         - 참고 작품의 문장, 샘플 문구, 고유한 비유를 복사하지 말고 구조적 기법과 음향 설계 방식만 학습해 완전히 새로운 가사와 반복 모티프를 만들어.
         
         [창작 방향]
-        - 사용자의 창작 키워드, 곡 콘셉트, 가사 기획 브리프, 제목, 스타일, 특별 지시를 서로 연결해 하나의 곡으로 완성해.
+        - 곡 콘셉트, 가사 기획 브리프, 제목과 특별 지시를 하나의 이해 가능한 사건으로 연결해. 창작 키워드는 정확한 단어를 가사에 넣는 것보다 정서와 방향을 살리는 것이 우선이며, 부자연스러우면 직접 사용하지 마.
         - 가사는 ${fullMainLang}를 중심으로 작성하고${fullSubLangs.length ? ` ${fullSubLangs.join(', ')}를 자연스럽게 섞을 수 있어` : ' 장르상 자연스러운 외래어와 훅은 허용해'}.
         ${koreanPronunciationGuide}
         - 위 음악 스타일은 Suno의 "Style of Music" 정보이고 가사와 분리해. 스타일 문구를 lyrics 안에 되풀이하지 마.
@@ -119,8 +121,9 @@ export async function POST(request: Request) {
 
         const { text } = await generateText({
             model: aiModel,
-            system: `Write original, structured Suno-ready lyrics as valid JSON. The selected vocal configuration (${vocalType}) is mandatory. Use canonical bracketed section tags, colon-based section descriptors, concise vocal tags at vocal changes, readable blank lines between sections, repeatable chorus text, and intentional section-to-section contrast. Avoid redundant tags and overly long prose-like sections. Return lyrics only and do not generate image, video, scene, album-cover, or thumbnail prompts. Never copy lyrics or distinctive phrases from a reference work.`,
+            system: `Write original, emotionally intelligible, naturally singable, structured Suno-ready lyrics as valid JSON. The selected vocal configuration (${vocalType}) is mandatory. Treat keywords as optional creative seeds, never as words that must be repeated. Prioritize a coherent human situation, natural phrasing, concrete actions, a conversational hook, and meaningful emotional progression. Choose the intro form intentionally instead of defaulting to an instrumental. Use canonical section tags without clutter. Silently revise tautologies, translation-like phrasing, filler rhymes, forced English, and abstract concept summaries before returning lyrics. Return lyrics only and never copy lyrics or distinctive phrases from a reference work.`,
             prompt,
+            temperature: 0.65,
         });
         const parsedData = parseJsonObject(text);
         const lyrics = stringArray(parsedData.lyrics);

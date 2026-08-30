@@ -65,15 +65,17 @@ export async function POST(request: Request) {
         - 출력 언어 설정: **${fullMainLang}**
         - 유튜브 인기 트렌드 참고 데이터(없으면 무시): ${JSON.stringify(compressedData)}
         
-        사용자의 핵심 키워드와 특별 지시를 최우선으로 존중해 서로 결이 다른 곡 콘셉트 3가지를 제안해 줘.
+        사용자의 핵심 키워드는 창작 의도와 감정의 출발점으로 존중하되, 제목·훅·모든 장면에 같은 단어를 강제로 반복하지 말고 서로 결이 다른 곡 콘셉트 3가지로 자유롭게 해석해 줘.
+        키워드가 추상적이면 그 단어를 설명하지 말고 사람이 실제로 겪을 수 있는 관계, 장소, 사건과 선택으로 번역해. 정확한 키워드 표현을 가사에 넣지 않아도 의도가 살아 있으면 더 좋은 기획으로 판단해.
         유튜브 데이터는 있을 때만 아이디어를 넓히는 참고 자료로 사용하고 그대로 모방하지 마.
         장르에 전통, 실험, 시대적 소재가 포함되면 임의로 배제하지 말고 사용자의 의도에 맞게 해석해.
 
         [응답 구성]
         - 제목, concept, lyricBrief는 ${langGuide}으로 자연스럽게 작성해.
-        - concept는 이 곡만의 상황, 화자, 정서를 한두 문장으로 명확하게 요약해. 음악 스타일 설명을 반복하지 마.
+        - concept는 이 곡만의 화자와 청자 관계, 현재 벌어지는 사건, 핵심 갈등과 정서를 한두 문장으로 명확하게 요약해. 키워드의 사전적 의미나 음악 스타일 설명을 반복하지 마.
         - lyricBrief는 이후 가사 AI가 그대로 이어 쓸 핵심 기획서야. 화자와 청자, 배경 상황, 벌스에서 전개할 사건, 프리코러스의 전환, 후렴의 핵심 메시지와 훅 방향, 브리지에서 바뀌는 감정, 마지막 도착점을 5~8문장으로 구체화해.
-        - lyricBrief에는 사용할 만한 핵심 사물·장소·감각 이미지 3~5개와 피해야 할 상투적 표현도 자연스럽게 포함해. 완성 가사나 긴 샘플 문구를 미리 쓰지는 마.
+        - lyricBrief에는 하나의 사건 안에서 서로 연결되는 핵심 사물·장소·감각 이미지 2~4개와 피해야 할 상투적 표현을 자연스럽게 포함해. 이미지를 체크리스트처럼 전부 사용하라고 지시하거나 완성 가사와 긴 샘플 문구를 미리 쓰지는 마.
+        - 키워드를 가사에서 어떤 역할로 사용할지 제목, 훅, 중심 비유, 배경 영감 중 하나만 선택해 브리프에 반영해. 정확한 단어가 부자연스러우면 가사에 직접 쓰지 않고 정서적 영감으로만 남겨.
         - musicStyle은 Suno의 "Style of Music" 입력란에 그대로 붙여넣을 수 있는 자연스러운 영어 설명으로 작성해.
         - genre:, vocal:, instrumentation:, style tags:, production:, tempo: 같은 필드명, JSON 형태, 불필요한 따옴표를 출력하지 마. 내부적으로는 이 범주들을 점검하되 최종 결과는 2~4개의 간결한 문장으로 자연스럽게 연결해.
         - 첫 문장에서 핵심 하위 장르, 시대감, 숫자 BPM, 조성 또는 전체 질감을 명확히 제시하고, 이어서 보컬과 주요 악기, 마지막으로 편곡·믹싱·공간감·다이내믹을 설명해.
@@ -112,7 +114,7 @@ export async function POST(request: Request) {
             model: aiModel,
             system: `Create original music concepts from the user's intent. Return valid JSON matching the requested schema so the application can parse it. Prefer ${fullMainLang} for general fields while allowing natural genre terms and loanwords. Give every plan a distinct concept and a production-ready lyricBrief that preserves the user's narrative intent for the later lyric-writing step. Write musicStyle as a polished, paste-ready English Suno style description in natural prose; never expose category labels such as genre:, vocal:, instrumentation:, production:, or tempo:.`,
             prompt: prompt,
-            temperature: 0.8
+            temperature: 0.7
         });
 
         const parsedData = parseJsonObject(text);

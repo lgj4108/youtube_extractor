@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createAiModel, parseJsonObject, stringArray, stringValue } from '@/lib/server/ai';
 import { errorResponse, optionalString, readJsonObject, RequestError, requiredString } from '@/lib/server/api';
-import { SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
+import { LYRICS_WRITING_QUALITY_GUIDE, SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
 
 export async function POST(request: Request) {
     try {
@@ -60,6 +60,9 @@ export async function POST(request: Request) {
         [구조 수정 요청에 적용할 표준]
         사용자가 메타태그·곡 구조·섹션 연출을 고쳐 달라고 했을 때 아래 표준을 적용해. 단순 문구 수정 요청에서는 선택 밖의 기존 구조를 임의로 재포맷하지 마.
         ${SUNO_LYRICS_STRUCTURE_GUIDE}
+
+        사용자가 가사의 전달력·자연스러움·전체 재작성을 요청하면 아래 품질 표준도 적용해. 선택 영역만 수정하는 요청에서는 주변 문맥을 이해하는 기준으로만 사용해.
+        ${LYRICS_WRITING_QUALITY_GUIDE}
 
         <full_lyrics>
         ${rawLyrics}

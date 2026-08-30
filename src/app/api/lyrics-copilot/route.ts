@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createAiModel, parseJsonObject, stringValue } from '@/lib/server/ai';
 import { errorResponse, optionalString, readJsonObject, RequestError, requiredString } from '@/lib/server/api';
-import { SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
+import { LYRICS_WRITING_QUALITY_GUIDE, SUNO_LYRICS_STRUCTURE_GUIDE } from '@/lib/server/suno-lyrics';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -92,6 +92,8 @@ ${message}
 
 suggestedLyrics를 작성하거나 구조 개선을 제안할 때는 아래 표준을 적용해.
 ${SUNO_LYRICS_STRUCTURE_GUIDE}
+
+${LYRICS_WRITING_QUALITY_GUIDE}
 
 아래 JSON 객체만 반환해.
 {

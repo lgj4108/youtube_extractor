@@ -4,7 +4,8 @@ export const SUNO_LYRICS_STRUCTURE_GUIDE = `[Suno Lyrics 구조화 표준]
 - Style of Music과 Lyrics의 역할을 분리해. 장르·전체 템포·전체 악기 구성·믹싱 설명은 Style 필드의 정보이며, Lyrics에는 곡 구조와 해당 순간에 실제로 필요한 섹션별 연출만 넣어.
 - 각 섹션은 반드시 별도 줄의 표준 영어 구조 태그로 시작해. 기본 어휘는 [Instrumental Intro], [Intro], [Verse 1], [Verse 2], [Pre-Chorus], [Chorus], [Post-Chorus], [Hook], [Bridge], [Breakdown], [Instrumental Break], [Outro], [End]야. 곡에 필요하지 않은 섹션은 넣지 마.
 - 섹션별 수식어가 필요하면 하이픈 나열보다 콜론 구문 [Verse 1: close-mic, muted drums], [Chorus: full band, wide harmonies], [Bridge: stripped down, vulnerable vocal]을 우선해. 구조 이름을 맨 앞에 두고 서로 충돌하지 않는 핵심 수식어 1~3개만 사용해.
-- 연주 인트로는 [Intro] 다음 [Instrumental]을 중복해 쌓지 말고 [Instrumental Intro] 또는 [Instrumental Intro: descriptors] 한 줄로 표현해. 중간 연주는 [Instrumental Break], 특정 솔로는 [Guitar Solo], [Piano Solo]처럼 정확한 태그를 사용해.
+- 인트로는 매번 연주로 시작하지 마. 곡에 따라 인트로 생략, 바로 Verse로 시작하는 cold open, 1~3줄의 가사형 [Intro], 후렴 일부를 먼저 들려주는 hook preview, [Spoken Word]나 짧은 샘플, [Instrumental Intro] 중 가장 효과적인 하나를 선택해. 연주가 서사와 긴장 형성에 실제로 도움이 될 때만 Instrumental Intro를 사용해.
+- 연주 인트로를 선택했다면 [Intro] 다음 [Instrumental]을 중복해 쌓지 말고 [Instrumental Intro] 또는 [Instrumental Intro: descriptors] 한 줄로 표현해. 중간 연주는 [Instrumental Break], 특정 솔로는 [Guitar Solo], [Piano Solo]처럼 정확한 태그를 사용해.
 - 보컬 담당이나 창법이 바뀌는 지점에만 [Female Vocal], [Male Vocal], [Duet], [Rap], [Spoken Word], [Whisper], [Humming], [Choir], [Harmony], [Backing Vocals] 같은 태그를 별도 줄로 배치해. 같은 보컬이 계속되는데 매 줄마다 반복하지 마.
 - 대괄호에는 구조·보컬·편곡·다이내믹 지시만 넣고, 실제로 들리는 짧은 응답·애드리브·샘플·메아리는 소괄호로 써. 설명문, 카메라 지시, 줄거리 메모는 어느 괄호에도 넣지 마.
 - Verse는 새로운 사건과 이미지를 전개하고, 같은 Chorus가 다시 나올 때는 핵심 훅 가사를 가능한 한 그대로 반복해 멜로디 반복을 유도해. 마지막 후렴은 같은 훅을 유지한 채 [Chorus: reprise, wider harmonies]처럼 레이어나 강도만 발전시킬 수 있어.
@@ -12,3 +13,15 @@ export const SUNO_LYRICS_STRUCTURE_GUIDE = `[Suno Lyrics 구조화 표준]
 - 곡의 정체성에 도움이 될 때만 짧고 독창적인 반복 모티프 하나를 만들고, intro의 희미한 샘플 → chorus의 backing response → outro의 변형처럼 2~3회 발전시켜. 모든 곡에 효과음이나 샘플을 강제하지 마.
 - [Fade In], [Fade Out], [Silence], [Crescendo], [Decrescendo], [Key Change] 같은 독립 태그는 실제 변화가 시작되는 정확한 위치에만 사용해. [End]는 마지막 단독 줄로 두고 뒤에 텍스트를 쓰지 마.
 - 섹션 사이에는 빈 줄을 하나 두어 붙여 넣었을 때 구조가 분명하게 보이게 해. 출력 전에 중복 태그, 비표준 복수형 태그, 서로 모순되는 수식어, 불필요하게 반복된 제작 지시를 제거해.`;
+
+export const LYRICS_WRITING_QUALITY_GUIDE = `[가사 전달력과 자연스러움 표준]
+- 키워드는 창작을 시작하는 씨앗이지 반드시 가사에 그대로 넣어야 하는 단어 목록이 아니야. 키워드의 감정과 상황만 남기고 정확한 단어를 생략하거나 다른 이미지로 바꿔도 돼. 사용자가 직접 특정 문구를 훅에 넣으라고 요청한 경우에만 그 문구를 필수로 사용해.
+- 키워드를 제목, 핵심 훅, 반복 비유, 배경 소재에 동시에 억지로 배치하지 마. 가장 효과적인 역할 하나만 선택하고, 같은 의미망의 단어를 매 줄 나열하지 마.
+- 먼저 화자와 청자의 관계, 지금 벌어지는 구체적인 사건, 노래가 시작될 때와 끝날 때 달라지는 감정을 내부적으로 한 문장씩 정리한 뒤 가사를 써. 각 Verse에는 설명이 아니라 새로운 행동·선택·발견이 일어나야 해.
+- 추상어로 감정을 정의하기보다 사람이 실제로 하는 행동, 주고받는 말, 몸의 반응, 손에 잡히는 사물과 장소로 보여줘. 사물은 서로 무관한 소품 목록이 아니라 같은 사건을 이어 주는 단서로 사용해.
+- 한 곡의 중심 비유는 하나를 우선해. 색, 온도, 독, 화면, 계절처럼 비유 체계를 정했다면 같은 뜻을 다른 추상어로 거듭 설명하지 말고 장면과 행동으로 발전시켜.
+- Chorus는 곡의 콘셉트를 요약하는 보고서가 아니라 화자가 청자에게 지금 하고 싶은 가장 선명한 말이어야 해. 첫 두 줄 안에 대화처럼 이해되는 핵심 훅을 두고, 한 번 들었을 때 따라 부를 수 있도록 짧고 구체적으로 써.
+- 자연스러운 한국어 문장보다 운율을 우선해 어미에 ‘난’, ‘참’을 붙이거나, ‘뷰/New’, ‘Color/Saturate’처럼 영어를 번역투로 끼워 맞추지 마. 외국어는 사용자가 요구했거나 장르상 훅의 의미와 발음이 분명할 때만 제한적으로 사용해.
+- ‘모든 채도가 채워져’, ‘선명하게 드러나는 선명한 균열’처럼 같은 뜻의 단어가 겹치는 동어반복, 의미가 성립하지 않는 수식 관계, 앞뒤 인과가 없는 문장을 제거해.
+- 각 줄을 소리 내어 읽는다고 가정하고 누가 누구에게 무슨 말을 하는지 바로 이해되지 않는 줄은 다시 써. 멋있어 보이는 단어보다 감정이 전달되는 평범하고 정확한 단어를 우선해.
+- 최종 출력 전에 키워드를 가린 상태로도 이야기가 이해되는지, Verse 2가 Verse 1과 다른 정보를 주는지, Bridge에서 관점이나 선택이 변하는지, 마지막 Chorus가 그 변화를 반영하는지 조용히 검수해. 검수 설명은 출력하지 말고 수정된 가사만 반환해.`;
